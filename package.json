@@ -1,0 +1,23 @@
+{
+  "name": "covermaker",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Underground rap cover art maker: photo FX, gothic/chrome/graffiti type, stickers and one-tap styles. Exports 3000x3000.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "@vitejs/plugin-react": "4.7.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "typescript": "5.9.3",
+    "vite": "5.4.21",
+    "vite-plugin-singlefile": "2.3.0"
+  }
+}
