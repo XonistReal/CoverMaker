@@ -1,9 +1,9 @@
 {
-  "name": "nyxor-site",
+  "name": "junko-site",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Front-end for the Nyxor game tools storefront (mock data, no backend yet).",
+  "description": "Front-end for the Junko (junko.rip) game tools storefront (mock data, no backend yet).",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

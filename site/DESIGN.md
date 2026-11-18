@@ -1,4 +1,4 @@
-# Nyxor front-end: design & code contract
+# Junko (junko.rip) front-end: design & code contract
 
 Front-end only. All data is mock data in `src/data/catalog.ts`; cart/auth live in `src/state/store.tsx` + localStorage. No backend calls.
 
@@ -6,7 +6,7 @@ Front-end only. All data is mock data in `src/data/catalog.ts`; cart/auth live i
 Vite + React 18 + TypeScript (strict, `noUnusedLocals`). Hash router in `src/router.tsx` (`useRoute`, `navigate`, `Link`, `href`). No other runtime deps: do **not** add npm packages.
 
 ## Brand
-Name, wordmark, rating, etc. come from `src/config.ts` (`BRAND`). Never hard-code "Nyxor" in copy, use `BRAND.name`. Original brand: no third-party game logos, character art or screenshots. Game visuals come from `<GameArt game variant="poster|banner|tile" />`.
+Name, wordmark, rating, etc. come from `src/config.ts` (`BRAND`). Never hard-code "Junko" in copy, use `BRAND.name`. Original brand: no third-party game logos, character art or screenshots. Game visuals come from `<GameArt game variant="poster|banner|tile" />`.
 
 ## Visual language
 - Near-black surfaces (`--bg`, `--bg-2`, `--surface`, `--surface-2`, `--surface-3`), hairline borders (`--line`, `--line-2`, `--line-3`).

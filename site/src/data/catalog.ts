@@ -99,7 +99,7 @@ const SPOOF: FeatureGroup[] = [
   {
     group: 'Utility',
     icon: 'sliders',
-    items: ['One-click cleaner', 'Serial checker', 'Restore on demand', 'Works with every Nyxor tool'],
+    items: ['One-click cleaner', 'Serial checker', 'Restore on demand', 'Works with every Junko tool'],
   },
 ];
 
@@ -212,14 +212,14 @@ const SEEDS: Seed[] = [
   { slug: 'dayz-wraith', game: 'dayz', name: 'DayZ Wraith', kind: 'external', status: 'undetected', day: 6.99, tagline: 'Long-range player, zombie, vehicle and loot ESP.', updated: '2026-11-08T09:25:00Z', rating: 4.8, reviews: 92, sold: 1700 },
   { slug: 'delta-specter', game: 'delta-force', name: 'Delta Force Specter', kind: 'external', status: 'undetected', day: 6.99, tagline: 'Operations and Warfare ESP with extraction overlay.', isNew: true, updated: '2026-11-16T20:00:00Z', rating: 4.8, reviews: 63, sold: 1200 },
   { slug: 'abi-umbra', game: 'arena-breakout', name: 'Arena Breakout Umbra', kind: 'external', status: 'detected', day: 6.99, tagline: 'Sales paused while we rebuild after the last anti-cheat wave.', updated: '2026-11-05T12:00:00Z', rating: 4.6, reviews: 58, sold: 1400 },
-  { slug: 'spoofer-temp', game: 'hwid-spoofer', name: 'Nyxor Temp Spoofer', kind: 'spoofer', status: 'undetected', day: 3.99, tagline: 'Fresh hardware identity every boot. Reverts on restart.', popular: true, updated: '2026-11-17T15:30:00Z', rating: 4.9, reviews: 388, sold: 8700 },
-  { slug: 'spoofer-perm', game: 'hwid-spoofer', name: 'Nyxor Perm Spoofer', kind: 'spoofer', status: 'undetected', day: 14.99, tagline: 'Permanent serial change for hardware bans. One run, done.', lifetime: true, updated: '2026-11-15T09:45:00Z', rating: 4.9, reviews: 204, sold: 4300 },
+  { slug: 'spoofer-temp', game: 'hwid-spoofer', name: 'Junko Temp Spoofer', kind: 'spoofer', status: 'undetected', day: 3.99, tagline: 'Fresh hardware identity every boot. Reverts on restart.', popular: true, updated: '2026-11-17T15:30:00Z', rating: 4.9, reviews: 388, sold: 8700 },
+  { slug: 'spoofer-perm', game: 'hwid-spoofer', name: 'Junko Perm Spoofer', kind: 'spoofer', status: 'undetected', day: 14.99, tagline: 'Permanent serial change for hardware bans. One run, done.', lifetime: true, updated: '2026-11-15T09:45:00Z', rating: 4.9, reviews: 204, sold: 4300 },
 ];
 
 function describe(seed: Seed, game: Game): string {
   switch (seed.kind) {
     case 'spoofer':
-      return `${seed.name} changes the hardware identifiers anti-cheats use to fingerprint your PC, so a hardware ban stays on the old identity instead of following you. It runs before the game, needs no BIOS flashing, and works alongside every Nyxor product.`;
+      return `${seed.name} changes the hardware identifiers anti-cheats use to fingerprint your PC, so a hardware ban stays on the old identity instead of following you. It runs before the game, needs no BIOS flashing, and works alongside every Junko product.`;
     case 'radar':
       return `${seed.name} draws the whole raid on a web radar you can open on a phone, tablet or second monitor, so nothing ever renders on top of the game itself. Filter loot by value, track players through walls and share a live link with your squad.`;
     case 'unlocker':

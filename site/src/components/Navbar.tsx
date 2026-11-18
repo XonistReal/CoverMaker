@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NAV_LINKS } from '../config';
+import { BRAND, NAV_LINKS } from '../config';
 import { Link, isActive, useRoute } from '../router';
 import { useAuth, useCart, useOnlineCount, useUI } from '../state/store';
 import { Icon } from './Icon';
@@ -31,7 +31,7 @@ export function Navbar() {
     <>
       <header className={`nav${scrolled || menuOpen ? ' is-scrolled' : ''}${isHome ? '' : ' is-solid'}`}>
         <div className="container nav-inner">
-          <Link to="/" aria-label="Nyxor home">
+          <Link to="/" aria-label={`${BRAND.name} home`}>
             <Logo />
           </Link>
 

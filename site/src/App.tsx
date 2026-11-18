@@ -17,6 +17,7 @@ import { StorePage } from './pages/Store';
 import { SupportPage } from './pages/Support';
 import { useRoute, type Route } from './router';
 import { StoreProvider } from './state/store';
+import { BRAND } from './config';
 
 const TITLES: Record<string, string> = {
   store: 'Store',
@@ -62,7 +63,7 @@ export function App() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
     const t = TITLES[route.parts[0] ?? ''];
-    document.title = t ? `${t} · Nyxor` : 'Nyxor — Undetected tools for every game';
+    document.title = t ? `${t} · ${BRAND.name}` : `${BRAND.name} — Undetected tools for every game`;
   }, [pageKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
