@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import { useId, type CSSProperties } from 'react';
 import type { Game } from '../data/types';
 
 /**
@@ -54,7 +54,9 @@ export function GameArt({ game, variant = 'poster', showName = true, className =
   const ringY = H * (0.28 + rnd() * 0.22);
   const ringR = Math.min(W, H) * (variant === 'banner' ? 0.36 : 0.3);
   const rot = -8 + rnd() * 6;
-  const gid = `ga-${game.slug}-${variant}`;
+  // Unique per instance: shared ids break when the first copy sits in a display:none subtree.
+  const uid = useId().replace(/:/g, '');
+  const gid = `ga-${game.slug}-${variant}-${uid}`;
 
   return (
     <div

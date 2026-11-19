@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 import { AuthModal } from './components/AuthModal';
 import { CartDrawer } from './components/CartDrawer';
 import { Footer } from './components/Footer';
@@ -58,9 +58,10 @@ function Page({ route }: { route: Route }) {
 export function App() {
   const route = useRoute();
 
-  // Scroll to top on page change (not on query-only changes).
+  // Scroll to top on page change (not on query-only changes). Runs as a layout
+  // effect so it lands before pages' own useEffect, letting them refine the title.
   const pageKey = route.parts.join('/');
-  useEffect(() => {
+  useLayoutEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
     const t = TITLES[route.parts[0] ?? ''];
     document.title = t ? `${t} · ${BRAND.name}` : `${BRAND.name} — Undetected tools for every game`;

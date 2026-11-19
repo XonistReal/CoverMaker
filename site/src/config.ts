@@ -3,6 +3,10 @@ export const BRAND = {
   name: 'Junko',
   wordmark: 'JUNKO',
   domain: 'junko.rip',
+  /** Prefix for license keys, tickets and preset codes, e.g. JNK-7F3K-Q9LM-2XWD. */
+  keyPrefix: 'JNK',
+  /** Namespace for front-end localStorage keys. */
+  storageKey: 'junko',
   tagline: 'Play in the dark.',
   blurb:
     'Premium game tools built in-house, shipped instantly and watched around the clock. Trusted by 18,000+ players.',

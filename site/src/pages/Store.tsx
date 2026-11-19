@@ -1,3 +1,8 @@
+import { StoreGame } from './store/StoreGame';
+import { StoreIndex } from './store/StoreIndex';
+import './store.css';
+
+/** `#/store` (catalog with search + filters) and `#/store/<gameSlug>` (one game's products). */
 export function StorePage({ gameSlug, query }: { gameSlug?: string; query: URLSearchParams }) {
-  return <div className="page container"><h1 className="h1">Store {gameSlug} {query.toString()}</h1></div>;
+  return gameSlug ? <StoreGame key={gameSlug} slug={gameSlug} /> : <StoreIndex query={query} />;
 }

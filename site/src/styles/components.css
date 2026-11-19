@@ -317,6 +317,25 @@
   right: 12px;
 }
 
+/* Narrow cards (2-up on phones, dense scrollers): let meta rows wrap/stack
+   instead of colliding. */
+.product-card,
+.game-card { container-type: inline-size; }
+@container (max-width: 240px) {
+  .product-card-body { padding: 12px 13px 16px; }
+  .product-card-body > .row { flex-wrap: wrap; row-gap: 6px; }
+  .product-card-title { font-size: 15px; }
+  .product-card-tag { font-size: 12.5px; }
+}
+@container (max-width: 184px) {
+  .game-card .game-art-name { padding-bottom: 62px; }
+  .game-card-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+}
+
 /* Navbar ----------------------------------------------------------- */
 .nav {
   position: fixed;
@@ -533,7 +552,7 @@
   position: fixed;
   z-index: 90;
   left: 50%;
-  bottom: 24px;
+  bottom: calc(24px + var(--sticky-bottom, 0px));
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;

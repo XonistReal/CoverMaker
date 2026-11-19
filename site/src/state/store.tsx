@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { BRAND } from '../config';
 import { getProduct } from '../data/catalog';
 import type { Plan, Product } from '../data/types';
 
@@ -51,7 +52,7 @@ export interface Coupon {
 }
 
 /** Codes the mock checkout accepts. */
-export const COUPONS: Record<string, number> = { NYX10: 10, NIGHT20: 20 };
+export const COUPONS: Record<string, number> = { JUNKO10: 10, NIGHT20: 20 };
 
 interface CartApi {
   lines: ResolvedLine[];
@@ -81,7 +82,8 @@ export interface User {
 
 interface AuthApi {
   user: User | null;
-  signIn: (email: string) => void;
+  /** Mock sign-in. `username` defaults to the part of the email before the @. */
+  signIn: (email: string, username?: string) => void;
   signOut: () => void;
 }
 
@@ -151,20 +153,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [cartOpen, authMode, chatOpen, toasts, toast, dismissToast],
   );
 
-  /* Lock page scroll while an overlay is open. */
+  /* Lock page scroll while an overlay is open. The chat only covers the page
+     on phones (it becomes a near full-screen sheet), so it locks there only. */
+  const [narrow, setNarrow] = useState(() => window.matchMedia('(max-width: 560px)').matches);
   useEffect(() => {
-    const locked = cartOpen || authMode !== null;
+    const mq = window.matchMedia('(max-width: 560px)');
+    const on = () => setNarrow(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+  useEffect(() => {
+    const locked = cartOpen || authMode !== null || (chatOpen && narrow);
     document.documentElement.style.overflow = locked ? 'hidden' : '';
     return () => {
       document.documentElement.style.overflow = '';
     };
-  }, [cartOpen, authMode]);
+  }, [cartOpen, authMode, chatOpen, narrow]);
 
   /* Cart ----------------------------------------------------------- */
-  const [raw, setRaw] = useState<CartLine[]>(() => load<CartLine[]>('nyx.cart', []));
-  const [coupon, setCoupon] = useState<Coupon | null>(() => load<Coupon | null>('nyx.coupon', null));
-  useEffect(() => save('nyx.cart', raw), [raw]);
-  useEffect(() => save('nyx.coupon', coupon), [coupon]);
+  const [raw, setRaw] = useState<CartLine[]>(() => load<CartLine[]>(`${BRAND.storageKey}.cart`, []));
+  const [coupon, setCoupon] = useState<Coupon | null>(() => load<Coupon | null>(`${BRAND.storageKey}.coupon`, null));
+  useEffect(() => save(`${BRAND.storageKey}.cart`, raw), [raw]);
+  useEffect(() => save(`${BRAND.storageKey}.coupon`, coupon), [coupon]);
 
   const cart = useMemo<CartApi>(() => {
     const lines: ResolvedLine[] = [];
@@ -211,13 +221,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [raw, coupon]);
 
   /* Auth ----------------------------------------------------------- */
-  const [user, setUser] = useState<User | null>(() => load<User | null>('nyx.user', null));
-  useEffect(() => save('nyx.user', user), [user]);
+  const [user, setUser] = useState<User | null>(() => load<User | null>(`${BRAND.storageKey}.user`, null));
+  useEffect(() => save(`${BRAND.storageKey}.user`, user), [user]);
   const auth = useMemo<AuthApi>(
     () => ({
       user,
-      signIn: (email) =>
-        setUser({ email, username: email.split('@')[0] || 'player', joined: new Date('2026-11-18').toISOString() }),
+      signIn: (email, username) =>
+        setUser({
+          email,
+          username: username?.trim() || email.split('@')[0] || 'player',
+          joined: new Date('2026-11-18').toISOString(),
+        }),
       signOut: () => setUser(null),
     }),
     [user],

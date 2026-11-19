@@ -262,7 +262,7 @@ export function CountUp({ to, duration = 1400, format }: { to: number; duration?
       };
       raf = requestAnimationFrame(tick);
     };
-    if (!('IntersectionObserver' in window)) {
+    if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       setN(to);
       return;
     }
