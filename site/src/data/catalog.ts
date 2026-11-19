@@ -349,9 +349,14 @@ export const gameStatus = (slug: string): Status => {
 };
 
 export const STATS = {
-  games: GAMES.length,
+  /** Real games only: the HWID spoofer "game" is a utility category. */
+  games: GAMES.filter((g) => g.genre !== 'Utility').length,
   products: PRODUCTS.length,
+  /** Products you can buy right now (everything except Detected, where sales pause). */
+  available: PRODUCTS.filter((p) => p.status !== 'detected').length,
   undetected: PRODUCTS.filter((p) => p.status === 'undetected').length,
+  /** Sum of every product's rating count; BRAND.reviewCount mirrors it. */
+  ratings: PRODUCTS.reduce((s, p) => s + p.reviews, 0),
 };
 
 export const formatPrice = (n: number) =>
@@ -372,5 +377,8 @@ export function timeAgo(iso: string): string {
 }
 
 export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  // Date-only strings parse as UTC midnight, which shows a day early west of
+  // UTC. Pin them to noon UTC so the calendar day is right everywhere.
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso}T12:00:00Z` : iso;
+  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }

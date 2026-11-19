@@ -28,7 +28,7 @@ export function Footer() {
           </div>
 
           <div className="footer-col">
-            <h4>Games</h4>
+            <h2>Games</h2>
             <ul>
               {GAMES.slice(0, 7).map((g) => (
                 <li key={g.slug}>
@@ -37,14 +37,14 @@ export function Footer() {
               ))}
               <li>
                 <Link to="/store" className="accent">
-                  All {GAMES.length} games →
+                  All {STATS.games} games →
                 </Link>
               </li>
             </ul>
           </div>
 
           <div className="footer-col">
-            <h4>Store</h4>
+            <h2>Store</h2>
             <ul>
               <li><Link to="/store">Browse products</Link></li>
               <li><Link to="/store/hwid-spoofer">HWID spoofers</Link></li>
@@ -55,18 +55,18 @@ export function Footer() {
           </div>
 
           <div className="footer-col">
-            <h4>Account</h4>
+            <h2>Account</h2>
             <ul>
               <li><Link to="/dashboard">Dashboard</Link></li>
-              <li><Link to="/dashboard">License keys</Link></li>
-              <li><Link to="/dashboard">Orders</Link></li>
+              <li><Link to="/dashboard?tab=licenses">License keys</Link></li>
+              <li><Link to="/dashboard?tab=orders">Orders</Link></li>
               <li><Link to="/support">Support</Link></li>
-              <li><Link to="/support">FAQ</Link></li>
+              <li><Link to="/support?faq=1">FAQ</Link></li>
             </ul>
           </div>
 
           <div className="footer-col">
-            <h4>Legal</h4>
+            <h2>Legal</h2>
             <ul>
               <li><Link to="/legal/terms">Terms of Service</Link></li>
               <li><Link to="/legal/privacy">Privacy Policy</Link></li>

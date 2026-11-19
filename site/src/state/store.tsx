@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import { BRAND } from '../config';
-import { getProduct } from '../data/catalog';
+import { NOW, getProduct } from '../data/catalog';
 import type { Plan, Product } from '../data/types';
 
 /* Front-end only: cart, auth and UI state live in React + localStorage. */
@@ -22,6 +22,36 @@ function load<T>(key: string, fallback: T): T {
     return fallback;
   }
 }
+/* Stored data can be stale or hand-edited: validate it so a bad value never
+   crashes the app. */
+const MAX_QTY = 10;
+const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
+
+function sanitizeCart(v: unknown): CartLine[] {
+  if (!Array.isArray(v)) return [];
+  return v
+    .filter((l): l is Record<string, unknown> => isObj(l) && typeof l.productSlug === 'string' && typeof l.planId === 'string' && Number.isFinite(Number(l.qty)))
+    .map((l) => ({
+      productSlug: l.productSlug as string,
+      planId: l.planId as string,
+      qty: Math.min(MAX_QTY, Math.max(1, Math.round(Number(l.qty)))),
+    }));
+}
+
+function sanitizeCoupon(v: unknown): Coupon | null {
+  // Re-check against the live list so retired or edited codes drop off.
+  if (!isObj(v) || typeof v.code !== 'string') return null;
+  const percent = COUPONS[v.code];
+  return percent ? { code: v.code, percent } : null;
+}
+
+function sanitizeUser(v: unknown): User | null {
+  if (!isObj(v) || typeof v.email !== 'string' || !v.email) return null;
+  const username = typeof v.username === 'string' && v.username.trim() ? v.username : v.email.split('@')[0] || 'player';
+  const joined = typeof v.joined === 'string' && !Number.isNaN(Date.parse(v.joined)) ? v.joined : new Date(NOW).toISOString();
+  return { email: v.email, username, joined };
+}
+
 function save(key: string, value: unknown) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
@@ -61,7 +91,8 @@ interface CartApi {
   discount: number;
   total: number;
   coupon: Coupon | null;
-  add: (productSlug: string, planId: string, qty?: number) => void;
+  /** Adds up to the 10-per-plan cap. Returns how many units were actually added. */
+  add: (productSlug: string, planId: string, qty?: number) => number;
   setQty: (productSlug: string, planId: string, qty: number) => void;
   remove: (productSlug: string, planId: string) => void;
   clear: () => void;
@@ -171,8 +202,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [cartOpen, authMode, chatOpen, narrow]);
 
   /* Cart ----------------------------------------------------------- */
-  const [raw, setRaw] = useState<CartLine[]>(() => load<CartLine[]>(`${BRAND.storageKey}.cart`, []));
-  const [coupon, setCoupon] = useState<Coupon | null>(() => load<Coupon | null>(`${BRAND.storageKey}.coupon`, null));
+  const [raw, setRaw] = useState<CartLine[]>(() => sanitizeCart(load<unknown>(`${BRAND.storageKey}.cart`, [])));
+  const [coupon, setCoupon] = useState<Coupon | null>(() => sanitizeCoupon(load<unknown>(`${BRAND.storageKey}.coupon`, null)));
   useEffect(() => save(`${BRAND.storageKey}.cart`, raw), [raw]);
   useEffect(() => save(`${BRAND.storageKey}.coupon`, coupon), [coupon]);
 
@@ -184,7 +215,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (product && plan) lines.push({ ...l, product, plan, lineTotal: plan.price * l.qty });
     }
     const subtotal = lines.reduce((s, l) => s + l.lineTotal, 0);
-    const discount = coupon ? Math.round(subtotal * coupon.percent) / 100 : 0;
+    const discount = coupon ? Math.min(subtotal, Math.round(subtotal * coupon.percent) / 100) : 0;
     const same = (l: CartLine, s: string, p: string) => l.productSlug === s && l.planId === p;
     return {
       lines,
@@ -193,15 +224,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       discount,
       total: Math.max(0, subtotal - discount),
       coupon,
-      add: (s, p, qty = 1) =>
-        setRaw((r) =>
-          r.some((l) => same(l, s, p))
-            ? r.map((l) => (same(l, s, p) ? { ...l, qty: Math.min(10, l.qty + qty) } : l))
-            : [...r, { productSlug: s, planId: p, qty }],
-        ),
+      add: (s, p, qty = 1) => {
+        const have = raw.find((l) => same(l, s, p))?.qty ?? 0;
+        const added = Math.max(0, Math.min(MAX_QTY, have + qty) - have);
+        if (added > 0)
+          setRaw((r) =>
+            r.some((l) => same(l, s, p))
+              ? r.map((l) => (same(l, s, p) ? { ...l, qty: Math.min(MAX_QTY, l.qty + qty) } : l))
+              : [...r, { productSlug: s, planId: p, qty: Math.min(MAX_QTY, qty) }],
+          );
+        return added;
+      },
       setQty: (s, p, qty) =>
         setRaw((r) =>
-          qty <= 0 ? r.filter((l) => !same(l, s, p)) : r.map((l) => (same(l, s, p) ? { ...l, qty: Math.min(10, qty) } : l)),
+          qty <= 0 ? r.filter((l) => !same(l, s, p)) : r.map((l) => (same(l, s, p) ? { ...l, qty: Math.min(MAX_QTY, qty) } : l)),
         ),
       remove: (s, p) => setRaw((r) => r.filter((l) => !same(l, s, p))),
       clear: () => {
@@ -221,7 +257,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [raw, coupon]);
 
   /* Auth ----------------------------------------------------------- */
-  const [user, setUser] = useState<User | null>(() => load<User | null>(`${BRAND.storageKey}.user`, null));
+  const [user, setUser] = useState<User | null>(() => sanitizeUser(load<unknown>(`${BRAND.storageKey}.user`, null)));
   useEffect(() => save(`${BRAND.storageKey}.user`, user), [user]);
   const auth = useMemo<AuthApi>(
     () => ({
@@ -230,7 +266,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setUser({
           email,
           username: username?.trim() || email.split('@')[0] || 'player',
-          joined: new Date('2026-11-18').toISOString(),
+          joined: new Date(NOW).toISOString(),
         }),
       signOut: () => setUser(null),
     }),

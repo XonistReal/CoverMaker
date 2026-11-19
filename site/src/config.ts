@@ -13,7 +13,8 @@ export const BRAND = {
   discordUrl: '#/support',
   supportEmail: 'support@junko.rip',
   rating: 4.9,
-  reviewCount: 2140,
+  /** Total star ratings: keep equal to the sum of product `reviews` in catalog.ts (STATS.ratings). */
+  reviewCount: 3673,
   customers: '18K+',
   founded: 2021,
   currency: 'USD',

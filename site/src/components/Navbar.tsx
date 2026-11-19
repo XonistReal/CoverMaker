@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { BRAND, NAV_LINKS } from '../config';
 import { Link, isActive, useRoute } from '../router';
 import { useAuth, useCart, useOnlineCount, useUI } from '../state/store';
@@ -22,8 +22,52 @@ export function Navbar() {
     return () => window.removeEventListener('scroll', on);
   }, []);
 
+  const burgerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
   // Close the mobile sheet on navigation.
   useEffect(() => setMenuOpen(false), [route.path]);
+
+  // While the sheet is open it behaves like a modal: page scroll is locked,
+  // focus moves in and is trapped (burger + sheet), Esc closes it, and it
+  // closes itself if the viewport grows past the mobile breakpoint.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const root = document.documentElement;
+    root.style.overflow = 'hidden';
+    const focusables = () => [
+      burgerRef.current,
+      ...Array.from(menuRef.current?.querySelectorAll<HTMLElement>('a[href], button:not([disabled])') ?? []),
+    ].filter((el): el is HTMLElement => !!el);
+    menuRef.current?.querySelector<HTMLElement>('a[href]')?.focus({ preventScroll: true });
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setMenuOpen(false);
+        burgerRef.current?.focus();
+      } else if (e.key === 'Tab') {
+        const els = focusables();
+        const i = els.indexOf(document.activeElement as HTMLElement);
+        const next = e.shiftKey ? (i <= 0 ? els.length - 1 : i - 1) : i === -1 || i === els.length - 1 ? 0 : i + 1;
+        e.preventDefault();
+        els[next]?.focus();
+      }
+    };
+    const mq = window.matchMedia('(min-width: 861px)');
+    const onMq = () => mq.matches && setMenuOpen(false);
+    document.addEventListener('keydown', onKey);
+    mq.addEventListener('change', onMq);
+    return () => {
+      root.style.overflow = '';
+      document.removeEventListener('keydown', onKey);
+      mq.removeEventListener('change', onMq);
+    };
+  }, [menuOpen]);
+
+  // Any link in the sheet closes it, including one to the current page.
+  const closeOnLink = (e: MouseEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest('a')) setMenuOpen(false);
+  };
 
   const isHome = route.path === '/';
 
@@ -31,7 +75,7 @@ export function Navbar() {
     <>
       <header className={`nav${scrolled || menuOpen ? ' is-scrolled' : ''}${isHome ? '' : ' is-solid'}`}>
         <div className="container nav-inner">
-          <Link to="/" aria-label={`${BRAND.name} home`}>
+          <Link to="/" aria-label={`${BRAND.name} home`} onClick={() => setMenuOpen(false)}>
             <Logo />
           </Link>
 
@@ -76,10 +120,12 @@ export function Navbar() {
             )}
 
             <button
+              ref={burgerRef}
               className="btn btn-ghost btn-icon nav-burger"
               onClick={() => setMenuOpen((v) => !v)}
               aria-label={menuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={menuOpen}
+              aria-controls="mobile-menu"
             >
               <Icon name={menuOpen ? 'x' : 'menu'} size={20} />
             </button>
@@ -88,7 +134,7 @@ export function Navbar() {
       </header>
 
       {menuOpen && (
-        <div className="mobile-menu" role="dialog" aria-label="Menu">
+        <div id="mobile-menu" ref={menuRef} className="mobile-menu" role="dialog" aria-modal="true" aria-label="Menu" onClick={closeOnLink}>
           <Link to="/" className={`nav-link${isHome ? ' is-active' : ''}`}>
             <Icon name="home" />
             Home

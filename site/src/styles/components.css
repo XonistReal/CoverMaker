@@ -116,7 +116,10 @@
   transition: grid-template-rows 0.35s var(--ease);
 }
 .acc-item.is-open .acc-a { grid-template-rows: 1fr; }
-.acc-a-inner { overflow: hidden; }
+/* visibility keeps collapsed answers out of the accessibility tree and tab
+   order, flipping only after the close animation has finished. */
+.acc-a-inner { overflow: hidden; visibility: hidden; transition: visibility 0s 0.35s; }
+.acc-item.is-open .acc-a-inner { visibility: visible; transition-delay: 0s; }
 .acc-a-body {
   padding: 0 22px 22px 22px;
   color: var(--text-2);
@@ -437,12 +440,17 @@
   background: rgb(6 7 10 / 0.97);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  padding: 20px var(--gutter) 40px;
+  padding: 20px max(var(--gutter), env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom))
+    max(var(--gutter), env(safe-area-inset-left));
   display: flex;
   flex-direction: column;
   gap: 6px;
   animation: fade-in 0.2s ease both;
   overflow-y: auto;
+  overscroll-behavior: contain;
+}
+@media (min-width: 861px) {
+  .mobile-menu { display: none; }
 }
 .mobile-menu .nav-link {
   height: 54px;
@@ -476,7 +484,7 @@
   gap: 40px 28px;
 }
 .footer-brand p { margin-top: 16px; max-width: 320px; color: var(--muted); font-size: 14px; }
-.footer-col h4 {
+.footer-col h2 {
   font-family: var(--font-mono);
   font-size: 11.5px;
   font-weight: 500;
@@ -552,7 +560,7 @@
   position: fixed;
   z-index: 90;
   left: 50%;
-  bottom: calc(24px + var(--sticky-bottom, 0px));
+  bottom: calc(24px + var(--sticky-bottom, 0px) + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;

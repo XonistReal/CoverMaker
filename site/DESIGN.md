@@ -34,6 +34,18 @@ Decor: `.bg-grid .bg-dots .glow-blob .hairline-top`, `.section-head(.is-center)`
 - `components/Logo.tsx`: `Logo`, `LogoMark`.
 - State: `useCart()` (lines, count, subtotal, discount, total, coupon, add, setQty, remove, clear, applyCoupon, removeCoupon), `useAuth()` (user, signIn, signOut), `useUI()` (openCart/closeCart/cartOpen, openAuth(mode)/closeAuth/authMode, chatOpen/setChatOpen, toast({title, body?, tone?})), `useOnlineCount()`.
 - Data helpers (`data/catalog.ts`): `GAMES PRODUCTS REVIEWS FAQS CHANGELOG STATUS_META KIND_LABEL STATS getGame getProduct productsForGame reviewsForProduct fromPrice gameFromPrice gameStatus formatPrice timeAgo formatDate NOW`.
+  - `STATS.games` counts real games only (the HWID spoofer entry is a utility), `STATS.available` = products you can buy now (not Detected), `STATS.ratings` = sum of product rating counts (= `BRAND.reviewCount`).
+  - `formatDate` is timezone-safe for date-only strings (`2026-11-17`).
+- `useCart().add()` returns how many units were actually added (each plan is capped at 10), so feedback can say so.
+- `EmptyState` takes `as="h1"` when it is the whole page.
+
+## Platform notes
+- `main.tsx` loads `global.css` and `components.css` before any page CSS, so a page rule with equal specificity overrides a shared class.
+- `App` sets a generic `document.title` in a layout effect; a page can refine it with `document.title = ...` in its own `useEffect`.
+- Pages with a fixed bottom bar set `--sticky-bottom` on `<html>`; the chat launcher and toasts sit above it.
+- Overlays that cover the page must lock scroll, move focus in, trap Tab, close on Esc and return focus to the trigger.
+- Only `--muted` or brighter for text; `--faint` is for strokes, icons and dots.
+- Saved browser data lives under `BRAND.storageKey` (`junko.*`); license keys and tickets use `BRAND.keyPrefix` (`JNK`).
 
 ## Rules for page code
 1. Each page/section owns its own CSS file next to it, imported from its TSX (e.g. `import './store.css'`). Prefix every class with the page's prefix (`home-`, `menu-`, `store-`, `pdp-`, `status-`, `rev-`, `cart-`, `auth-`, `chat-`, `co-`, `dash-`, `sup-`, `legal-`, `nf-`) so files never collide.

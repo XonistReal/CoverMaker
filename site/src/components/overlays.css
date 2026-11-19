@@ -883,7 +883,7 @@
 
 .chat-launcher {
   position: fixed;
-  right: var(--chat-gap);
+  right: calc(var(--chat-gap) + env(safe-area-inset-right));
   bottom: var(--chat-bottom);
   z-index: 60;
   width: 58px;

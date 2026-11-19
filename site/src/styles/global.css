@@ -170,13 +170,13 @@ body::after {
   width: 100%;
   max-width: calc(var(--container) + var(--gutter) * 2);
   margin-inline: auto;
-  padding-inline: var(--gutter);
+  padding-inline: max(var(--gutter), env(safe-area-inset-left)) max(var(--gutter), env(safe-area-inset-right));
 }
 .container-narrow {
   width: 100%;
   max-width: calc(860px + var(--gutter) * 2);
   margin-inline: auto;
-  padding-inline: var(--gutter);
+  padding-inline: max(var(--gutter), env(safe-area-inset-left)) max(var(--gutter), env(safe-area-inset-right));
 }
 .section {
   padding-block: clamp(64px, 9vw, 120px);
@@ -523,11 +523,11 @@ body::after {
   border: 1px solid var(--line-2);
   color: var(--text);
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
 }
 .textarea { height: auto; min-height: 120px; padding: 12px 14px; resize: vertical; line-height: 1.5; }
 .input::placeholder,
-.textarea::placeholder { color: var(--faint); }
+.textarea::placeholder { color: var(--muted); }
 .input:hover,
 .select:hover,
 .textarea:hover { border-color: var(--line-3); }
@@ -536,7 +536,7 @@ body::after {
 .textarea:focus {
   border-color: var(--accent-line);
   box-shadow: 0 0 0 4px var(--accent-soft);
-  background: var(--surface);
+  background-color: var(--surface);
 }
 .select {
   appearance: none;
@@ -837,4 +837,6 @@ body::after {
   .reveal { opacity: 1; transform: none; }
 }
 
-.route-fade { animation: fade-in 0.35s ease both; }
+/* `backwards` (not `both`): once finished, <main> must not stay a stacking
+   context, or fixed bars inside pages get painted under the footer. */
+.route-fade { animation: fade-in 0.35s ease backwards; }

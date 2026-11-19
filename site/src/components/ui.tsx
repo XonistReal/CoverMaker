@@ -152,6 +152,7 @@ export function Accordion({
           <div key={i} className={`acc-item${isOpen ? ' is-open' : ''}`}>
             <button
               className="acc-q"
+              id={`${id}-q`}
               aria-expanded={isOpen}
               aria-controls={id}
               onClick={() => setOpen(isOpen ? null : i)}
@@ -162,7 +163,7 @@ export function Accordion({
                 <Icon name={isOpen ? 'minus' : 'plus'} size={16} />
               </span>
             </button>
-            <div className="acc-a" id={id} role="region">
+            <div className="acc-a" id={id} role="region" aria-labelledby={`${id}-q`}>
               <div className="acc-a-inner">
                 <div className="acc-a-body">{it.a}</div>
               </div>
@@ -225,20 +226,23 @@ export function EmptyState({
   title,
   body,
   action,
+  as: Heading = 'h3',
 }: {
   icon?: string;
   title: string;
   body?: ReactNode;
   action?: ReactNode;
+  /** Heading level for the title. Use 'h1' when the empty state is the whole page. */
+  as?: 'h1' | 'h2' | 'h3';
 }) {
   return (
     <div className="empty">
       <span className="icon-tile">
         <Icon name={icon} size={24} />
       </span>
-      <h3 className="h4" style={{ color: 'var(--text)' }}>
+      <Heading className="h4" style={{ color: 'var(--text)' }}>
         {title}
-      </h3>
+      </Heading>
       {body && <p className="small" style={{ maxWidth: 380 }}>{body}</p>}
       {action}
     </div>
