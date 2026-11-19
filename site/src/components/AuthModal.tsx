@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import { BRAND } from '../config';
-import { Link } from '../router';
+import { Link, useRoute } from '../router';
 import { useAuth, useUI, type AuthMode } from '../state/store';
 import { Icon } from './Icon';
 import { Logo, LogoMark } from './Logo';
@@ -60,6 +60,16 @@ function trapTab(e: ReactKeyboardEvent, root: HTMLElement | null) {
 
 export function AuthModal() {
   const { authMode, closeAuth } = useUI();
+  const { path } = useRoute();
+
+  // Any page change (a link, the Back button) closes the modal.
+  const firstPath = useRef(path);
+  useEffect(() => {
+    if (path !== firstPath.current) {
+      firstPath.current = path;
+      closeAuth();
+    }
+  }, [path, closeAuth]);
   const open = authMode !== null;
   const { visible, closing } = usePresence(open, EXIT_MS);
   const lastMode = useRef<AuthMode>('signin');

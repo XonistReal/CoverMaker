@@ -384,7 +384,7 @@ export function CheckoutPage() {
               Secure <span className="accent">checkout</span>
             </h1>
             <p className="co-sub">
-              <Icon name="lock" size={14} /> Encrypted end to end · Keys delivered the second payment clears
+              <Icon name="lock" size={14} /> Secure connection · Keys delivered the second payment clears
             </p>
           </div>
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { KIND_LABEL, PRODUCTS, formatPrice, fromPrice, getGame, getProduct } from '../data/catalog';
 import type { Product, Status } from '../data/types';
-import { Link, navigate } from '../router';
+import { Link, navigate, useRoute } from '../router';
 import { useCart, useUI, type ResolvedLine } from '../state/store';
 import { GameArt } from './GameArt';
 import { Icon } from './Icon';
@@ -70,6 +70,16 @@ const lineKey = (l: { productSlug: string; planId: string }) => `${l.productSlug
 export function CartDrawer() {
   const { cartOpen, closeCart, authMode } = useUI();
   const cart = useCart();
+  const { path } = useRoute();
+
+  // Any page change (a link, the Back button) closes the drawer.
+  const firstPath = useRef(path);
+  useEffect(() => {
+    if (path !== firstPath.current) {
+      firstPath.current = path;
+      closeCart();
+    }
+  }, [path, closeCart]);
   const { visible, closing } = usePresence(cartOpen, EXIT_MS);
   const panelRef = useRef<HTMLElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
