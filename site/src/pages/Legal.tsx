@@ -4,12 +4,13 @@ import { Icon } from '../components/Icon';
 import { Breadcrumbs } from '../components/ui';
 import { Link } from '../router';
 import { useUI } from '../state/store';
+import { NotFoundPage } from './NotFound';
 import './legal.css';
 
 /* =====================================================================
    Legal documents: #/legal/terms | privacy | refunds | cookies
    Two-column layout: sticky document nav + table of contents on the
-   left, the document on the right. Unknown slugs fall back to terms.
+   left, the document on the right. Unknown slugs show the 404 page.
    ===================================================================== */
 
 type Slug = 'terms' | 'privacy' | 'refunds' | 'cookies';
@@ -561,13 +562,20 @@ function wordsIn(doc: LegalDoc) {
 
 const secId = (id: string) => `legal-${id}`;
 
+const scrollBehavior = (): ScrollBehavior =>
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+
 /* ------------------------------------------------------------------ */
 /* Page                                                                */
 /* ------------------------------------------------------------------ */
 
 export function LegalPage({ doc }: { doc: string }) {
+  const current = DOCS.find((d) => d.slug === doc.toLowerCase());
+  return current ? <LegalDocView current={current} /> : <NotFoundPage />;
+}
+
+function LegalDocView({ current }: { current: LegalDoc }) {
   const { toast } = useUI();
-  const current = DOCS.find((d) => d.slug === doc.toLowerCase()) ?? TERMS;
   const index = DOCS.indexOf(current);
   const prev = index > 0 ? DOCS[index - 1] : null;
   const next = index < DOCS.length - 1 ? DOCS[index + 1] : null;
@@ -575,6 +583,10 @@ export function LegalPage({ doc }: { doc: string }) {
   const [active, setActive] = useState(current.sections[0].id);
   const [tocOpen, setTocOpen] = useState(false);
   const docsRef = useRef<HTMLDivElement>(null);
+  const tocBarRef = useRef<HTMLDivElement>(null);
+  const goTimer = useRef(0);
+
+  useEffect(() => () => window.clearTimeout(goTimer.current), []);
 
   useEffect(() => {
     document.title = `${current.title} · ${BRAND.name}`;
@@ -617,8 +629,29 @@ export function LegalPage({ doc }: { doc: string }) {
   }, [current]);
 
   const goTo = (id: string) => {
+    const bar = tocBarRef.current;
+    const mobile = !!bar && bar.offsetHeight > 0;
+    const wasOpen = tocOpen;
     setTocOpen(false);
-    document.getElementById(secId(id))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.clearTimeout(goTimer.current);
+    const go = () => {
+      const el = document.getElementById(secId(id));
+      if (!el) return;
+      const behavior = scrollBehavior();
+      if (!mobile || !bar) {
+        el.scrollIntoView({ behavior, block: 'start' });
+        return;
+      }
+      // The mobile bar is sticky and in flow: land the heading just below where it sticks
+      // (nav height + its own offset + collapsed bar height).
+      const head = el.querySelector<HTMLElement>('.legal-h2') ?? el;
+      const stuckBottom = (parseFloat(getComputedStyle(bar).top) || 0) + bar.offsetHeight;
+      const top = head.getBoundingClientRect().top + window.scrollY - stuckBottom - 24;
+      window.scrollTo({ top: Math.max(0, top), behavior });
+    };
+    // Measure only after the open panel has collapsed, or everything below it shifts up mid-scroll.
+    if (mobile && wasOpen) goTimer.current = window.setTimeout(go, scrollBehavior() === 'auto' ? 30 : 330);
+    else go();
   };
 
   const copyLink = async () => {
@@ -740,7 +773,7 @@ export function LegalPage({ doc }: { doc: string }) {
               <p className="tiny muted">The summary is for convenience. The full text below is what applies.</p>
             </section>
 
-            <div className={`legal-toc-mobile${tocOpen ? ' is-open' : ''}`}>
+            <div className={`legal-toc-mobile${tocOpen ? ' is-open' : ''}`} ref={tocBarRef}>
               <button
                 type="button"
                 className="legal-toc-mobile-btn"

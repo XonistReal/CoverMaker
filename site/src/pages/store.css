@@ -1136,7 +1136,7 @@
   .store-trust-item { padding: 11px 12px; gap: 10px; }
   .store-trust-icon { width: 30px; height: 30px; border-radius: 9px; }
   .store-trust-icon svg { width: 15px; height: 15px; }
-  .store-trust-text strong { font-size: 12.5px; white-space: nowrap; }
+  .store-trust-text strong { font-size: 12.5px; text-wrap: balance; }
   .store-trust-text span { display: none; }
 
   .store-live {
@@ -1174,4 +1174,10 @@
   .store-row-feats li { height: 28px; padding: 0 9px; gap: 6px; font-size: 12px; max-width: 100%; }
   .store-row-feats li:nth-child(n + 4) { display: none; }
   .store-hero-stats dt { font-size: 9.5px; letter-spacing: 0.1em; }
+}
+
+@media (max-width: 400px) {
+  /* Three stat cells share ~300px: tighten the padding and let the small caption wrap instead of overflowing. */
+  .store-hero-stats > div { padding: 12px 10px; }
+  .store-hero-stats dd small { white-space: normal; }
 }

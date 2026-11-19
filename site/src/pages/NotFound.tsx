@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { BRAND } from '../config';
 import { PRODUCTS } from '../data/catalog';
 import { Icon } from '../components/Icon';
 import { ProductCard } from '../components/ProductCard';
@@ -60,6 +61,7 @@ export function NotFoundPage() {
 
   useEffect(() => {
     setCanGoBack(window.history.length > 1);
+    document.title = `Page not found · ${BRAND.name}`;
   }, []);
 
   return (

@@ -3,7 +3,7 @@ import { GameArt } from '../../components/GameArt';
 import { Icon } from '../../components/Icon';
 import { GameCard, ProductCard } from '../../components/ProductCard';
 import { EmptyState, SectionHeader, StatusDot } from '../../components/ui';
-import { GAMES, PRODUCTS, STATS, formatPrice, gameFromPrice, productsForGame, timeAgo } from '../../data/catalog';
+import { GAMES, PRODUCTS, STATS, formatPrice, gameFromPrice, getGame, productsForGame, timeAgo } from '../../data/catalog';
 import type { Genre } from '../../data/types';
 import { Link, navigate } from '../../router';
 import {
@@ -27,6 +27,9 @@ import { TrustRow } from './TrustRow';
 const SUGGESTIONS = ['Fortnite', 'Spoofer', 'Radar', 'Valorant'];
 
 const latestBuild = PRODUCTS.reduce((a, p) => (p.updatedAt > a ? p.updatedAt : a), PRODUCTS[0]?.updatedAt ?? '');
+
+/** Tools built for a specific game (STATS.games leaves out the HWID spoofer utility, so the lead does too). */
+const GAME_TOOLS = PRODUCTS.filter((p) => getGame(p.gameSlug)?.genre !== 'Utility').length;
 
 const navHeight = () =>
   parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 68;
@@ -91,6 +94,8 @@ export function StoreIndex({ query }: { query: URLSearchParams }) {
       if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      // Never pull focus out of an overlay (cart, sign in, menu, phone chat) into the page behind it.
+      if (t?.closest('[role="dialog"]') || document.querySelector('[aria-modal="true"]')) return;
       e.preventDefault();
       inputRef.current?.focus();
     };
@@ -168,6 +173,9 @@ export function StoreIndex({ query }: { query: URLSearchParams }) {
   }, [f.genre, chips.ref]);
   const sort = SORTS.find((s) => s.id === f.sort) ?? SORTS[0];
   const noun = f.view === 'games' ? (results === 1 ? 'game' : 'games') : results === 1 ? 'product' : 'products';
+  // The HWID spoofer tile is a utility, not a game: count it apart so this line agrees with the header.
+  const utilityHits = f.view === 'games' ? games.filter((g) => g.genre === 'Utility').length : 0;
+  const gameHits = results - utilityHits;
 
   return (
     <div className="page store">
@@ -189,7 +197,7 @@ export function StoreIndex({ query }: { query: URLSearchParams }) {
               <span className="accent">Every edge.</span>
             </>
           }
-          lead={`${STATS.products} tools across ${STATS.games} games. Built in-house, tested on fresh accounts before every release, and pulled the moment a patch lands.`}
+          lead={`${GAME_TOOLS} tools across ${STATS.games} games, plus HWID spoofers. Built in-house, tested on fresh accounts before every release, and pulled the moment a patch lands.`}
           action={
             <Link to="/status" className="store-live" aria-label="Open live status">
               <span className="store-live-top">
@@ -345,7 +353,20 @@ export function StoreIndex({ query }: { query: URLSearchParams }) {
       <section ref={resultsRef} className="container store-results" aria-label="Results">
         <div className="store-meta">
           <p className="store-count" aria-live="polite">
-            <strong className="tabular">{results}</strong> {noun}
+            {utilityHits > 0 ? (
+              <>
+                {gameHits > 0 && (
+                  <>
+                    <strong className="tabular">{gameHits}</strong> {gameHits === 1 ? 'game' : 'games'} +{' '}
+                  </>
+                )}
+                <strong className="tabular">{utilityHits}</strong> {utilityHits === 1 ? 'utility' : 'utilities'}
+              </>
+            ) : (
+              <>
+                <strong className="tabular">{results}</strong> {noun}
+              </>
+            )}
             {f.q.trim() && (
               <>
                 {' '}

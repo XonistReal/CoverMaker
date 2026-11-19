@@ -73,6 +73,7 @@ export function CartDrawer() {
   const { visible, closing } = usePresence(cartOpen, EXIT_MS);
   const panelRef = useRef<HTMLElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const couponRef = useRef<HTMLDivElement>(null);
   const [leaving, setLeaving] = useState<string[]>([]);
 
   // Move focus in on open, give it back on close.
@@ -107,8 +108,23 @@ export function CartDrawer() {
     lines.reduce((s, l) => s + ((l.plan.compareAt ?? l.plan.price) - l.plan.price) * l.qty, 0) + discount;
   const showUpsell = !!UPSELL && !isEmpty && !lines.some((l) => l.product.kind === 'spoofer');
 
+  /** Runs after React has painted the swap, so the new target exists. */
+  const focusSoon = (find: () => HTMLElement | null | undefined) =>
+    window.requestAnimationFrame(() => find()?.focus());
+  const lineEl = (k: string) =>
+    Array.from(panelRef.current?.querySelectorAll<HTMLElement>('.cart-line') ?? []).find((el) => el.dataset.key === k);
+
   const removeLine = (l: ResolvedLine) => {
     const k = lineKey(l);
+    // The line unmounts: hand focus to the neighbouring line's remove button, or to Close when it was the last one.
+    const row = lineEl(k);
+    const active = document.activeElement;
+    if (row && (row.contains(active) || active === document.body)) {
+      const rows = Array.from(panelRef.current?.querySelectorAll<HTMLElement>('.cart-line:not(.is-leaving)') ?? []);
+      const i = rows.indexOf(row);
+      const next = rows[i + 1] ?? rows[i - 1];
+      (next?.querySelector<HTMLElement>('.cart-remove') ?? closeRef.current)?.focus();
+    }
     setLeaving((ls) => (ls.includes(k) ? ls : [...ls, k]));
     window.setTimeout(() => {
       cart.remove(l.productSlug, l.planId);
@@ -183,7 +199,12 @@ export function CartDrawer() {
                   </div>
                   <button
                     className="btn btn-ghost btn-sm cart-upsell-add"
-                    onClick={() => cart.add(UPSELL.slug, UPSELL.plans[0].id)}
+                    onClick={() => {
+                      // The upsell disappears once added: move focus to the new line instead of <body>.
+                      cart.add(UPSELL.slug, UPSELL.plans[0].id);
+                      const k = lineKey({ productSlug: UPSELL.slug, planId: UPSELL.plans[0].id });
+                      focusSoon(() => lineEl(k)?.querySelector<HTMLElement>('.cart-line-name') ?? closeRef.current);
+                    }}
                     aria-label={`Add ${UPSELL.name}, ${UPSELL.plans[0].label}, ${formatPrice(UPSELL.plans[0].price)}`}
                   >
                     <Icon name="plus" size={14} />
@@ -199,12 +220,18 @@ export function CartDrawer() {
                     Code <strong className="mono">{coupon.code}</strong> applied
                   </span>
                   <span className="badge badge-ok">−{coupon.percent}%</span>
-                  <button className="cart-coupon-remove" onClick={cart.removeCoupon}>
+                  <button
+                    className="cart-coupon-remove"
+                    onClick={() => {
+                      cart.removeCoupon();
+                      focusSoon(() => couponRef.current);
+                    }}
+                  >
                     Remove
                   </button>
                 </div>
               ) : (
-                <div className="cart-coupon">
+                <div ref={couponRef} className="cart-coupon" tabIndex={-1}>
                   <Icon name="ticket" size={16} />
                   <span>
                     Have a code? <span className="text-2">Apply it at checkout.</span>
@@ -285,12 +312,22 @@ interface LineProps {
 
 function CartLineRow({ line, index, leaving, onRemove, onQty, onNavigate }: LineProps) {
   const { product, plan, qty, lineTotal } = line;
+  const decRef = useRef<HTMLButtonElement>(null);
+  const incRef = useRef<HTMLButtonElement>(null);
+  // A stepper button that hits its limit becomes disabled and would drop focus: hand it to the other one.
+  const step = (next: number) => {
+    const active = document.activeElement;
+    onQty(next);
+    if (next <= 1 && active === decRef.current) incRef.current?.focus();
+    else if (next >= 10 && active === incRef.current) decRef.current?.focus();
+  };
   const game = getGame(product.gameSlug);
   const to = `/product/${product.slug}`;
   const note = STATUS_NOTE[product.status];
 
   return (
     <li
+      data-key={lineKey(line)}
       className={`cart-line${leaving ? ' is-leaving' : ''}`}
       style={{ ['--i' as string]: index }}
       aria-hidden={leaving || undefined}
@@ -334,13 +371,13 @@ function CartLineRow({ line, index, leaving, onRemove, onQty, onNavigate }: Line
 
             <div className="cart-line-bottom">
               <div className="cart-qty" role="group" aria-label={`Quantity of ${product.name}`}>
-                <button onClick={() => onQty(qty - 1)} disabled={qty <= 1} aria-label="Decrease quantity">
+                <button ref={decRef} onClick={() => step(qty - 1)} disabled={qty <= 1} aria-label="Decrease quantity">
                   <Icon name="minus" size={14} />
                 </button>
                 <output className="tabular" aria-live="polite">
                   {qty}
                 </output>
-                <button onClick={() => onQty(qty + 1)} disabled={qty >= 10} aria-label="Increase quantity">
+                <button ref={incRef} onClick={() => step(qty + 1)} disabled={qty >= 10} aria-label="Increase quantity">
                   <Icon name="plus" size={14} />
                 </button>
               </div>

@@ -203,9 +203,9 @@
 .dash-tab[aria-selected='true'] .dash-tab-count { background: var(--accent-soft); color: var(--accent); }
 
 .dash-panel {
-  outline: none;
   animation: fade-up 0.45s var(--ease) both;
 }
+.dash-panel:focus-visible { outline: 2px solid var(--accent); outline-offset: 6px; border-radius: var(--r); }
 .dash-panel-head {
   display: flex;
   align-items: flex-end;
@@ -818,7 +818,9 @@
   .dash-hero-main { align-items: flex-start; }
   .dash-avatar .avatar { width: 56px !important; height: 56px !important; font-size: 23px !important; }
   .dash-meta { flex-direction: column; gap: 4px; }
+  .dash-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dash-stats > div { padding: 12px; }
+  .dash-stats > div:last-child { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line); }
   .dash-stats dt { font-size: 9.5px; letter-spacing: 0.08em; white-space: normal; }
   .dash-stats dd { font-size: 18px; }
   .dash-tab { padding: 0 12px; gap: 7px; }

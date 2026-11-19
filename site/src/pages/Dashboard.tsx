@@ -899,7 +899,7 @@ function Switch({ on, onChange, label, desc }: { on: boolean; onChange: (v: bool
 }
 
 function SettingsPanel() {
-  const { user, signOut } = useAuth();
+  const { user, signIn, signOut } = useAuth();
   const { toast } = useUI();
   const uid = useId();
   const [username, setUsername] = useState(user?.username ?? '');
@@ -920,6 +920,9 @@ function SettingsPanel() {
       toast({ title: 'Check your details', body: 'Username can’t be empty and the email needs to be valid.', tone: 'warn' });
       return;
     }
+    signIn(email.trim(), username.trim());
+    setUsername(username.trim());
+    setEmail(email.trim());
     toast({ title: 'Profile saved', body: 'Your changes are live across your account.' });
   };
 

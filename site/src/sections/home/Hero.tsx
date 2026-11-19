@@ -17,7 +17,7 @@ export function Hero() {
           <Stars value={BRAND.rating} size={13} />
           <strong className="tabular">{BRAND.rating.toFixed(1)}</strong>
           <span className="home-hero-rating-sep" aria-hidden="true" />
-          <span>{BRAND.reviewCount.toLocaleString('en-US')} verified reviews</span>
+          <span>{BRAND.reviewCount.toLocaleString('en-US')} verified ratings</span>
         </Link>
 
         <h1 id="home-hero-title" className="display home-hero-title">

@@ -78,7 +78,16 @@ export function AuthModal() {
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('keydown', onKey);
-      if (prev && document.contains(prev)) prev.focus({ preventScroll: true });
+      if (prev && prev !== document.body && document.contains(prev)) {
+        prev.focus({ preventScroll: true });
+        return;
+      }
+      // The trigger is gone (signing in swaps "Sign in" for the account link, the phone menu closes as the modal
+      // opens): land on the account entry point.
+      const fallback = Array.from(document.querySelectorAll<HTMLElement>('.nav-user, .nav-burger')).find(
+        (el) => el.getClientRects().length > 0,
+      );
+      fallback?.focus({ preventScroll: true });
     };
   }, [open, closeAuth]);
 
@@ -113,6 +122,7 @@ function AuthDialog({ mode }: { mode: AuthMode }) {
   const { signIn } = useAuth();
   const dialogRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const sentRef = useRef<HTMLHeadingElement>(null);
   const timer = useRef<number | undefined>(undefined);
 
   const [email, setEmail] = useState('');
@@ -144,6 +154,11 @@ function AuthDialog({ mode }: { mode: AuthMode }) {
     });
     return () => window.cancelAnimationFrame(raf);
   }, [mode]);
+
+  // The form is swapped for "Check your inbox": put focus on its heading so it isn't dropped to <body>.
+  useEffect(() => {
+    if (sentTo) sentRef.current?.focus({ preventScroll: true });
+  }, [sentTo]);
 
   const validate = (): Errors => {
     const e: Errors = {};
@@ -249,7 +264,7 @@ function AuthDialog({ mode }: { mode: AuthMode }) {
                   <Icon name="check" size={12} strokeWidth={3} />
                 </span>
               </span>
-              <h2 id="auth-title" className="auth-title">
+              <h2 id="auth-title" className="auth-title" ref={sentRef} tabIndex={-1}>
                 Check your inbox
               </h2>
               <p id="auth-sub" className="auth-sub">
@@ -288,7 +303,12 @@ function AuthDialog({ mode }: { mode: AuthMode }) {
 
               {mode !== 'forgot' && (
                 <>
-                  <button type="button" className="btn btn-lg btn-block auth-discord" onClick={discord} disabled={!!loading}>
+                  <button
+                    type="button"
+                    className="btn btn-lg btn-block auth-discord"
+                    onClick={discord}
+                    aria-disabled={!!loading || undefined}
+                  >
                     {loading === 'discord' ? <span className="auth-spinner" aria-hidden="true" /> : <Icon name="discord" />}
                     {loading === 'discord' ? 'Connecting to Discord…' : 'Continue with Discord'}
                   </button>
@@ -436,7 +456,12 @@ function AuthDialog({ mode }: { mode: AuthMode }) {
                   </div>
                 )}
 
-                <button type="submit" className="btn btn-primary btn-lg btn-block auth-submit" disabled={!!loading}>
+                {/* aria-disabled rather than disabled: a disabled button loses focus mid-submit. */}
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-lg btn-block auth-submit"
+                  aria-disabled={!!loading || undefined}
+                >
                   {loading === 'email' ? (
                     <>
                       <span className="auth-spinner" aria-hidden="true" />
@@ -580,7 +605,7 @@ function BrandPanel() {
             <strong>{BRAND.rating}</strong>
           </span>
           <span>
-            {BRAND.reviewCount.toLocaleString('en-US')} reviews · {BRAND.customers} players
+            {BRAND.reviewCount.toLocaleString('en-US')} ratings · {BRAND.customers} players
           </span>
         </span>
       </div>

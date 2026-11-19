@@ -1,11 +1,11 @@
 import { useId, useRef, type KeyboardEvent, type ReactNode } from 'react';
 import { Icon } from '../../components/Icon';
 import { Avatar, EmptyState, Stars } from '../../components/ui';
-import { BRAND } from '../../config';
 import { CHANGELOG, formatDate, reviewsForProduct, timeAgo } from '../../data/catalog';
-import type { ChangelogEntry, Game, Product } from '../../data/types';
+import type { ChangelogEntry, Game, Product, Review } from '../../data/types';
 import { Link } from '../../router';
 import { useUI } from '../../state/store';
+import { EXTRA_REVIEWS } from '../reviews-data';
 import { ratingDistribution, setupSteps } from './setup';
 
 export type TabId = 'features' | 'requirements' | 'setup' | 'reviews' | 'changelog';
@@ -22,7 +22,10 @@ export function ProductTabs({
   onTab: (t: TabId) => void;
 }) {
   const base = useId();
-  const reviews = reviewsForProduct(product.slug);
+  // Same review set as #/reviews (catalog reviews plus the older ones behind its "Load more"), newest first.
+  const reviews = [...reviewsForProduct(product.slug), ...EXTRA_REVIEWS.filter((r) => r.productSlug === product.slug)].sort(
+    (a, b) => b.date.localeCompare(a.date),
+  );
   const changes = CHANGELOG.filter((c) => c.productSlug === product.slug);
   const tabs: { id: TabId; label: string; count?: number }[] = [
     { id: 'features', label: 'Features', count: product.features.reduce((n, g) => n + g.items.length, 0) },
@@ -274,7 +277,7 @@ function SetupPanel({ product, game }: { product: Product; game: Game }) {
 /* Reviews                                                             */
 /* ------------------------------------------------------------------ */
 
-function ReviewsPanel({ product, reviews }: { product: Product; reviews: ReturnType<typeof reviewsForProduct> }) {
+function ReviewsPanel({ product, reviews }: { product: Product; reviews: Review[] }) {
   const dist = ratingDistribution(product.rating);
   return (
     <div className="pdp-reviews">
@@ -295,7 +298,7 @@ function ReviewsPanel({ product, reviews }: { product: Product; reviews: ReturnT
           ))}
         </ul>
         <Link to="/reviews" className="btn btn-ghost btn-block">
-          All {BRAND.reviewCount.toLocaleString('en-US')} store reviews <Icon name="arrow-right" />
+          Read all store reviews <Icon name="arrow-right" />
         </Link>
       </aside>
       <div className="pdp-rev-list">

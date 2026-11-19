@@ -58,7 +58,7 @@ export function ReviewsRow() {
             <div className="titles">
               <span className="eyebrow">Reviews</span>
               <h2 id="home-rev-title" className="h2">
-                Players <span className="muted">don’t hold back.</span>
+                Players <span className="grad-text">don’t hold back.</span>
               </h2>
               <p className="lead">Real feedback from verified buyers, unedited.</p>
             </div>
@@ -67,7 +67,7 @@ export function ReviewsRow() {
                 <span className="home-rev-big tabular">{BRAND.rating.toFixed(1)}</span>
                 <span className="stack gap-4">
                   <Stars value={BRAND.rating} size={15} />
-                  <span className="tiny muted">Based on {BRAND.reviewCount.toLocaleString('en-US')} reviews</span>
+                  <span className="tiny muted">Based on {BRAND.reviewCount.toLocaleString('en-US')} ratings</span>
                 </span>
               </div>
               <div className="row gap-8">

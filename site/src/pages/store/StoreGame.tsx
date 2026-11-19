@@ -366,12 +366,16 @@ function OtherGames({ games }: { games: Game[] }) {
 /* ------------------------------------------------------------------ */
 
 function GameNotFound() {
+  useEffect(() => {
+    document.title = `Game not found · ${BRAND.name}`;
+  }, []);
   return (
     <div className="page store">
       <div className="container">
         <Breadcrumbs items={[{ label: 'Home', to: '/' }, { label: 'Store', to: '/store' }, { label: 'Not found' }]} />
         <div className="store-missing">
           <EmptyState
+            as="h1"
             icon="gamepad"
             title="We don't cover that game (yet)"
             body="The link may be old, or the game hasn't joined the lineup. Browse everything we support instead."

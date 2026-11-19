@@ -17,7 +17,7 @@ import { FAQS, GAMES, PRODUCTS } from '../data/catalog';
 import type { Faq } from '../data/types';
 import { Icon } from '../components/Icon';
 import { Accordion, Avatar, EmptyState, Reveal, SectionHeader } from '../components/ui';
-import { Link } from '../router';
+import { Link, useRoute } from '../router';
 import { useUI } from '../state/store';
 import './support.css';
 
@@ -220,7 +220,7 @@ const GUIDES: Guide[] = [
     steps: [
       { title: 'Do a full restart', body: 'A pending Windows update or a previous session can hold the driver slot. Use Restart rather than Shut down, since Fast Startup keeps the old state.' },
       { title: 'Close conflicting software', body: 'Quit RGB and fan utilities, overlays, macro tools, virtual machines and any other tool that loads its own driver.' },
-      { title: 'Check Core isolation', body: 'Open Windows Security, then Device security, then Core isolation. If the product page lists Memory integrity as unsupported, switch it off and restart.' },
+      { title: 'Check Core isolation', body: 'Open Windows Security, then Device security, then Core isolation. If the loader still reports a blocked driver, switch Memory integrity off and restart. You can turn it back on when you stop using the tool.' },
       { title: 'Update Windows', body: 'Builds older than 22H2 are missing components the loader relies on. Run Windows Update, install everything, and reboot.' },
       { title: 'Send us loader.log', body: 'Still failing? Open a ticket and attach loader.log from the loader folder. A specialist will read it and reply with the exact fix.' },
     ],
@@ -331,8 +331,32 @@ function highlight(text: string, toks: string[]): ReactNode {
   );
 }
 
+const scrollBehavior = (): ScrollBehavior =>
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+
 function scrollToId(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.getElementById(id)?.scrollIntoView({ behavior: scrollBehavior(), block: 'start' });
+}
+
+/**
+ * Bring the FAQ into view once it has re-rendered and move focus into it, so keyboard and
+ * screen-reader users keep their place. With `toAnswer`, focus the opened question (and scroll
+ * straight to it when it would sit below the fold); otherwise focus the FAQ heading.
+ */
+function revealFaq(toAnswer: boolean) {
+  const sec = document.getElementById('sup-faq');
+  if (!sec) return;
+  const item = toAnswer ? sec.querySelector<HTMLElement>('.acc-item.is-open') : null;
+  let target: HTMLElement = sec;
+  if (item) {
+    const offset =
+      (parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0) +
+      (parseFloat(getComputedStyle(sec).scrollMarginTop) || 0);
+    if (item.getBoundingClientRect().bottom - sec.getBoundingClientRect().top + offset > window.innerHeight) target = item;
+  }
+  target.scrollIntoView({ behavior: scrollBehavior(), block: 'start' });
+  const focusEl = item?.querySelector<HTMLElement>('.acc-q') ?? document.getElementById('sup-faq-title');
+  focusEl?.focus({ preventScroll: true });
 }
 
 function formatDuration(totalSeconds: number) {
@@ -365,6 +389,8 @@ function formatBytes(n: number) {
 
 export function SupportPage() {
   const { setChatOpen } = useUI();
+  const route = useRoute();
+  const wantFaq = route.query.has('faq');
   const [query, setQuery] = useState('');
   const [cat, setCat] = useState<FaqCategory | 'All'>('All');
   const [jump, setJump] = useState<{ id: string; n: number } | null>(null);
@@ -380,14 +406,21 @@ export function SupportPage() {
   const jumpTo = useCallback((id: string) => {
     setCat('All');
     setJump((j) => ({ id, n: (j?.n ?? 0) + 1 }));
-    window.setTimeout(() => scrollToId('sup-faq'), 30);
+    window.setTimeout(() => revealFaq(true), 30);
   }, []);
 
   const seeAll = useCallback(() => {
     setCat('All');
     setJump(null);
-    window.setTimeout(() => scrollToId('sup-faq'), 30);
+    window.setTimeout(() => revealFaq(false), 30);
   }, []);
+
+  // #/support?faq=1 (footer "FAQ" link) lands on the FAQ block.
+  useEffect(() => {
+    if (!wantFaq) return;
+    const t = window.setTimeout(() => revealFaq(false), 30);
+    return () => window.clearTimeout(t);
+  }, [wantFaq]);
 
   const updateQuery = useCallback((q: string) => {
     setQuery(q);
@@ -484,8 +517,7 @@ function Hero({
 
   const pick = (id: string) => {
     setOpen(false);
-    inputRef.current?.blur();
-    onJump(id);
+    onJump(id); // moves focus to the opened answer's question
   };
 
   const onKey = (e: ReactKeyboardEvent<HTMLInputElement>) => {
@@ -508,8 +540,7 @@ function Hero({
       if (active >= 0 && active < shown.length) pick(shown[active].id);
       else {
         setOpen(false);
-        inputRef.current?.blur();
-        onSeeAll();
+        onSeeAll(); // moves focus to the FAQ heading
       }
     }
   };
@@ -1103,7 +1134,7 @@ function FaqBlock({
       <div className="container sup-faq-grid">
         <div className="sup-faq-side">
           <span className="eyebrow">FAQ</span>
-          <h2 className="h2" id="sup-faq-title">
+          <h2 className="h2 sup-faq-title" id="sup-faq-title" tabIndex={-1}>
             Answers,
             <br />
             <span className="accent">straight up.</span>

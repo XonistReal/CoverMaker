@@ -17,7 +17,7 @@ export function PopularProducts() {
             eyebrow="Best sellers"
             title={
               <span id="home-pop-title">
-                Popular <span className="muted">products</span>
+                Popular <span className="grad-text">products</span>
               </span>
             }
             lead="The tools our players pick most, each one live-tested this week."

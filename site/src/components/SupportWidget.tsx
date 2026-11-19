@@ -64,7 +64,29 @@ function replyFor(input: string): Reply {
 }
 
 const clock = (ms: number) => new Date(ms).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-const isNarrow = () => window.matchMedia('(max-width: 560px)').matches;
+/* Same breakpoint as the store's scroll lock: below it the panel is a full-screen modal sheet. */
+const NARROW_MQ = '(max-width: 560px)';
+const isNarrow = () => window.matchMedia(NARROW_MQ).matches;
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/** Keeps Tab inside `root`, including when focus has drifted outside it. */
+function trapTab(e: KeyboardEvent, root: HTMLElement | null) {
+  if (!root) return;
+  const els = Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => el.offsetParent !== null);
+  if (!els.length) return;
+  const first = els[0];
+  const last = els[els.length - 1];
+  const active = document.activeElement;
+  const inside = root.contains(active);
+  if (e.shiftKey && (active === first || !inside)) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && (active === last || !inside)) {
+    e.preventDefault();
+    first.focus();
+  }
+}
 
 function usePresence(open: boolean, ms: number) {
   const [mounted, setMounted] = useState(open);
@@ -82,6 +104,7 @@ function usePresence(open: boolean, ms: number) {
 export function SupportWidget() {
   const { chatOpen, setChatOpen, cartOpen, authMode } = useUI();
   const { visible, closing } = usePresence(chatOpen, EXIT_MS);
+  const [narrow, setNarrow] = useState(isNarrow);
 
   const nextId = useRef(2);
   const [messages, setMessages] = useState<Msg[]>(() => [
@@ -99,6 +122,8 @@ export function SupportWidget() {
   const [unread, setUnread] = useState(false);
 
   const launcherRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const timers = useRef<number[]>([]);
@@ -106,6 +131,13 @@ export function SupportWidget() {
   chatOpenRef.current = chatOpen;
 
   useEffect(() => () => timers.current.forEach((t) => window.clearTimeout(t)), []);
+
+  useEffect(() => {
+    const mq = window.matchMedia(NARROW_MQ);
+    const on = () => setNarrow(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
 
   // One-time teaser bubble + unread badge: once per browser session, never on
   // phones (the bubble would sit over content), and it tucks itself away after a while.
@@ -125,7 +157,7 @@ export function SupportWidget() {
       } catch {
         /* ignore */
       }
-      if (window.matchMedia('(max-width: 560px)').matches) return;
+      if (isNarrow()) return;
       setTeaser((s) => (s === 'idle' ? 'shown' : s));
     }, TEASER_MS);
     return () => window.clearTimeout(t);
@@ -137,34 +169,45 @@ export function SupportWidget() {
     return () => window.clearTimeout(t);
   }, [teaser]);
 
-  // Opening the chat reads the greeting and retires the teaser.
+  // Opening the chat reads the greeting and retires the teaser. Focus moves in with a mouse, and always
+  // on phones, where the sheet covers the page (the close button there, so no keyboard pops up).
   useEffect(() => {
     if (!chatOpen) return;
     setUnread(false);
     setTeaser('done');
     const raf = window.requestAnimationFrame(() => {
       if (window.matchMedia('(pointer: fine)').matches) inputRef.current?.focus({ preventScroll: true });
+      else if (isNarrow()) closeRef.current?.focus({ preventScroll: true });
     });
     return () => window.cancelAnimationFrame(raf);
   }, [chatOpen]);
 
-  // Esc closes the panel when nothing modal sits above it.
+  const close = () => {
+    setChatOpen(false);
+    launcherRef.current?.focus({ preventScroll: true });
+  };
+
+  // Esc closes the panel when nothing modal sits above it; on phones the sheet is modal, so Tab stays inside.
   useEffect(() => {
     if (!chatOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !cartOpen && authMode === null) {
+      if (cartOpen || authMode !== null) return;
+      if (e.key === 'Escape') {
         setChatOpen(false);
         launcherRef.current?.focus({ preventScroll: true });
+      } else if (e.key === 'Tab' && narrow) {
+        trapTab(e, panelRef.current);
       }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [chatOpen, cartOpen, authMode, setChatOpen]);
+  }, [chatOpen, cartOpen, authMode, narrow, setChatOpen]);
 
   // Keep the newest message in view.
   useEffect(() => {
     const el = listRef.current;
-    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: reduce ? 'auto' : 'smooth' });
   }, [messages, pending, visible]);
 
   const send = (raw: string) => {
@@ -238,18 +281,16 @@ export function SupportWidget() {
       </button>
 
       {visible && (
-        <div
-          className={`chat-scrim${closing ? ' is-closing' : ''}`}
-          onClick={() => setChatOpen(false)}
-          aria-hidden="true"
-        />
+        <div className={`chat-scrim${closing ? ' is-closing' : ''}`} onClick={close} aria-hidden="true" />
       )}
 
       {visible && (
         <section
+          ref={panelRef}
           id="chat-panel"
           className={`chat-panel${closing ? ' is-closing' : ''}`}
           role="dialog"
+          aria-modal={narrow || undefined}
           aria-labelledby="chat-title"
         >
           <header className="chat-head">
@@ -269,14 +310,7 @@ export function SupportWidget() {
                 Typically replies in under 4 min
               </p>
             </div>
-            <button
-              className="chat-close"
-              onClick={() => {
-                setChatOpen(false);
-                launcherRef.current?.focus({ preventScroll: true });
-              }}
-              aria-label="Close support chat"
-            >
+            <button ref={closeRef} className="chat-close" onClick={close} aria-label="Close support chat">
               <Icon name="x" size={18} />
             </button>
           </header>

@@ -167,7 +167,7 @@
 .legal-toc-num {
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--faint);
+  color: var(--muted);
   flex: none;
   transition: color 0.2s;
 }
@@ -619,7 +619,7 @@
     font-size: 10.5px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--faint);
+    color: var(--muted);
   }
   .legal-table td.legal-td-key { white-space: normal; overflow-wrap: anywhere; }
   .legal-pref { padding: 14px; }

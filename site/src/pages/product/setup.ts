@@ -99,10 +99,10 @@ export function setupSteps(product: Product, gameName: string): SetupStep[] {
       return [
         statusStep(product.name),
         {
-          title: 'Turn off conflicting software',
-          body: 'Disable Defender real-time protection, Memory Integrity and any overlay apps such as MSI Afterburner or RivaTuner.',
-          icon: 'settings',
-          hint: 'Windows Security › Device security',
+          title: 'Add a Defender exclusion',
+          body: 'In Windows Security add a folder exclusion for your tools folder only, and close overlay apps such as MSI Afterburner or RivaTuner. Leave real-time protection on.',
+          icon: 'shield-check',
+          hint: 'Windows Security › Exclusions',
         },
         loaderStep,
         {

@@ -1437,7 +1437,7 @@
 .pdp-spoof-old {
   font-family: var(--font-mono);
   font-size: 11.5px;
-  color: var(--faint);
+  color: var(--muted);
   text-decoration: line-through;
 }
 .pdp-spoof-new {
@@ -1876,7 +1876,7 @@
 }
 .pdp-plan-amt s {
   font-size: 12px;
-  color: var(--faint);
+  color: var(--muted);
 }
 .pdp-plan-amt strong {
   font-family: var(--font-display);
@@ -2796,6 +2796,19 @@
 /* Responsive                                                          */
 /* ------------------------------------------------------------------ */
 
+/* Two-column layout with a narrow left column: four spec cells can't fit "Recommended" */
+@media (min-width: 961px) and (max-width: 1200px) {
+  .pdp-specs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .pdp-specs > div:nth-child(3) {
+    border-left: 0;
+  }
+  .pdp-specs > div:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
+  }
+}
+
 @media (max-width: 1100px) {
   .pdp-reviews {
     grid-template-columns: 280px minmax(0, 1fr);
@@ -2892,11 +2905,24 @@
     text-overflow: ellipsis;
   }
   .pdp-bar-plan {
+    display: flex;
+    min-width: 0;
     font-size: 12.5px;
     color: var(--muted);
     white-space: nowrap;
   }
+  /* The plan label gives way first so the price always stays readable */
+  .pdp-bar-plan-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pdp-bar-sep {
+    flex: none;
+    margin: 0 0.35em;
+  }
   .pdp-bar-plan b {
+    flex: none;
     color: var(--text);
   }
   .pdp-bar-paused {

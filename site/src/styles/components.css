@@ -436,7 +436,7 @@
 .mobile-menu {
   position: fixed;
   inset: var(--nav-h) 0 0 0;
-  z-index: 49;
+  z-index: 61; /* above the chat launcher (60), below drawers/modals (70+) */
   background: rgb(6 7 10 / 0.97);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);

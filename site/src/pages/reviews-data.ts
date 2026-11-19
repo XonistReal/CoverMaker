@@ -42,7 +42,7 @@ export const EXTRA_REVIEWS: Review[] = [
   { id: 'x32', author: 'Hana', productSlug: 'rivals-nightfall', plan: '1 Week', rating: 5, text: 'Aim profiles switch automatically when I swap heroes. So much better than juggling configs by hand.', date: '2026-10-04', verified: true },
 ];
 
-/** Share of all-time reviews per star, 5 → 1. Averages out to BRAND.rating (≈4.87). */
+/** Share of all-time star ratings per star, 5 → 1. Averages out to BRAND.rating (≈4.87). */
 const SHARE: Record<1 | 2 | 3 | 4 | 5, number> = { 5: 0.9117, 4: 0.065, 3: 0.0131, 2: 0.0042, 1: 0.006 };
 
 export interface DistRow {
@@ -51,7 +51,7 @@ export interface DistRow {
   pct: number;
 }
 
-/** Star distribution whose counts always add up exactly to BRAND.reviewCount. */
+/** Star-rating distribution whose counts always add up exactly to BRAND.reviewCount (every rating, not just written reviews). */
 export const DISTRIBUTION: DistRow[] = (() => {
   const total = BRAND.reviewCount;
   const lower = ([4, 3, 2, 1] as const).map((s) => ({ stars: s, count: Math.round(total * SHARE[s]) }));

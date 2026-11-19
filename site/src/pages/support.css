@@ -153,7 +153,7 @@
   font-size: 15.5px;
   color: var(--text);
 }
-.sup-search-input::placeholder { color: var(--faint); }
+.sup-search-input::placeholder { color: var(--muted); }
 .sup-search-input::-webkit-search-cancel-button { display: none; }
 .sup-kbd,
 .sup-search-clear {
@@ -423,7 +423,7 @@
   display: flex;
   justify-content: space-between;
   font-size: 10.5px;
-  color: var(--faint);
+  color: var(--muted);
 }
 
 .sup-desk-foot {
@@ -869,6 +869,8 @@
   flex-direction: column;
   gap: 16px;
 }
+/* Focused by script (search "see all", ?faq=1) as a landing point, not a control. */
+.sup-faq-title:focus { outline: none; }
 .sup-faq-lead { margin-top: -2px; }
 .sup-faq-search { margin-top: 6px; }
 .sup-faq-search .input::-webkit-search-cancel-button { filter: grayscale(1) brightness(1.6); cursor: pointer; }

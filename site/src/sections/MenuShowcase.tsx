@@ -1576,7 +1576,7 @@ export function MenuShowcase() {
           <h2 className="h2 menu-h2" id={headingId}>
             Every setting,
             <br />
-            <span className="accent">one key away.</span>
+            <span className="grad-text">one key away.</span>
           </h2>
           <p className="lead menu-lead">
             Every {BRAND.name} tool opens to the same clean menu. Go on, try it: sensible presets out of the box, and every

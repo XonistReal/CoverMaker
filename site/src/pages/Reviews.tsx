@@ -25,6 +25,77 @@ const PAGE = 12;
 const MIN_CHARS = 20;
 const MAX_CHARS = 500;
 
+/** Reviews written on this device, kept until "verification" so a reload doesn't lose them. */
+const MINE_KEY = `${BRAND.storageKey}.reviews`;
+const MAX_SAVED = 20;
+
+const scrollBehavior = (): ScrollBehavior =>
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+
+function toSavedReview(v: unknown): Review | null {
+  if (!v || typeof v !== 'object') return null;
+  const r = v as Record<string, unknown>;
+  const p = typeof r.productSlug === 'string' ? getProduct(r.productSlug) : undefined;
+  const author = typeof r.author === 'string' ? r.author.trim() : '';
+  const text = typeof r.text === 'string' ? r.text.trim() : '';
+  const ok =
+    !!p &&
+    typeof r.id === 'string' &&
+    r.id.startsWith('mine-') &&
+    author.length >= 1 &&
+    author.length <= 64 &&
+    typeof r.plan === 'string' &&
+    (r.plan === '' || p.plans.some((pl) => pl.label === r.plan)) &&
+    typeof r.rating === 'number' &&
+    Number.isInteger(r.rating) &&
+    r.rating >= 1 &&
+    r.rating <= 5 &&
+    text.length >= MIN_CHARS &&
+    text.length <= MAX_CHARS &&
+    typeof r.date === 'string' &&
+    /^\d{4}-\d{2}-\d{2}$/.test(r.date) &&
+    !Number.isNaN(Date.parse(r.date));
+  if (!ok || !p) return null;
+  return {
+    id: r.id as string,
+    author,
+    productSlug: p.slug,
+    plan: r.plan as string,
+    rating: r.rating as Review['rating'],
+    text,
+    date: r.date as string,
+    verified: false,
+  };
+}
+
+function loadMine(): Review[] {
+  try {
+    const data: unknown = JSON.parse(localStorage.getItem(MINE_KEY) ?? '[]');
+    if (!Array.isArray(data)) return [];
+    const seen = new Set<string>();
+    const out: Review[] = [];
+    for (const v of data) {
+      const r = toSavedReview(v);
+      if (!r || seen.has(r.id)) continue;
+      seen.add(r.id);
+      out.push(r);
+      if (out.length >= MAX_SAVED) break;
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+function saveMine(list: Review[]) {
+  try {
+    if (list.length) localStorage.setItem(MINE_KEY, JSON.stringify(list.slice(0, MAX_SAVED)));
+    else localStorage.removeItem(MINE_KEY);
+  } catch {
+    /* storage unavailable: the review still shows for this visit */
+  }
+}
+
 type Sort = 'newest' | 'highest' | 'lowest';
 const SORTS: { id: Sort; label: string }[] = [
   { id: 'newest', label: 'Newest' },
@@ -32,7 +103,14 @@ const SORTS: { id: Sort; label: string }[] = [
   { id: 'lowest', label: 'Lowest' },
 ];
 
-const byDate = (a: Review, b: Review) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id);
+/** Newest first. On the same day your own pending reviews lead, latest first. */
+const byDate = (a: Review, b: Review) => {
+  const am = a.id.startsWith('mine-');
+  const bm = b.id.startsWith('mine-');
+  if (a.date !== b.date) return b.date.localeCompare(a.date);
+  if (am !== bm) return am ? -1 : 1;
+  return am ? b.id.localeCompare(a.id) : a.id.localeCompare(b.id);
+};
 
 function sortReviews(list: Review[], sort: Sort) {
   const out = [...list];
@@ -72,10 +150,12 @@ export function ReviewsPage() {
   const [sort, setSort] = useState<Sort>('newest');
   const [visible, setVisible] = useState(PAGE);
   const [batchStart, setBatchStart] = useState(0);
-  const [mine, setMine] = useState<Review[]>([]);
+  const [mine, setMine] = useState<Review[]>(loadMine);
   const [writing, setWriting] = useState(false);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const cols = useColumnCount();
+
+  useEffect(() => saveMine(mine), [mine]);
 
   const pool = useMemo(() => [...mine, ...ALL], [mine]);
 
@@ -131,18 +211,18 @@ export function ReviewsPage() {
     changeRating(stars);
     const el = toolbarRef.current;
     if (el && el.getBoundingClientRect().top > window.innerHeight * 0.75) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      el.scrollIntoView({ behavior: scrollBehavior(), block: 'start' });
     }
   };
 
   const onSubmitted = (r: Review) => {
-    setMine((m) => [r, ...m]);
+    setMine((m) => [r, ...m].slice(0, MAX_SAVED));
     setProduct('all');
     setRating(0);
     setSort('newest');
     reset();
     // Bring the new (pending) card into view once the dialog has closed.
-    window.setTimeout(() => toolbarRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+    window.setTimeout(() => toolbarRef.current?.scrollIntoView({ behavior: scrollBehavior(), block: 'start' }), 120);
   };
 
   const filteredActive = product !== 'all' || rating !== 0;
@@ -193,7 +273,7 @@ export function ReviewsPage() {
               <span className="rev-score-meta">
                 <Stars value={BRAND.rating} size={18} />
                 <span className="rev-score-count">
-                  <strong className="tabular">{BRAND.reviewCount.toLocaleString('en-US')}</strong> reviews
+                  <strong className="tabular">{BRAND.reviewCount.toLocaleString('en-US')}</strong> star ratings
                 </span>
                 <span className="rev-score-badge">
                   <Icon name="check-circle" size={13} /> Verified buyers
@@ -209,7 +289,7 @@ export function ReviewsPage() {
                     type="button"
                     className={`rev-dist-row${active ? ' is-active' : ''}${rating && !active ? ' is-dim' : ''}`}
                     aria-pressed={active}
-                    aria-label={`${d.stars} stars: ${d.count.toLocaleString('en-US')} reviews, ${Math.round(d.pct)}%. Show only ${d.stars}-star reviews`}
+                    aria-label={`${d.stars} ${d.stars === 1 ? 'star' : 'stars'}: ${d.count.toLocaleString('en-US')} ratings, ${d.pct < 1 ? 'under 1' : Math.round(d.pct)}%. Show only ${d.stars}-star written reviews`}
                     onClick={() => pickFromChart(d.stars)}
                   >
                     <span className="rev-dist-label tabular">
@@ -258,7 +338,7 @@ export function ReviewsPage() {
                   className="rev-chip"
                   aria-pressed={rating === s}
                   onClick={() => changeRating(s)}
-                  aria-label={`${s} stars (${starCounts[s]})`}
+                  aria-label={`${s} ${s === 1 ? 'star' : 'stars'} (${starCounts[s]} written ${starCounts[s] === 1 ? 'review' : 'reviews'})`}
                 >
                   {s}
                   <Icon name="star-fill" size={12} className="rev-chip-star" />
@@ -286,7 +366,7 @@ export function ReviewsPage() {
         <div className="rev-resultline small muted" aria-live="polite">
           <span>
             Showing <strong className="text-2">{shown.length}</strong> of{' '}
-            <strong className="text-2">{filtered.length}</strong> {filtered.length === 1 ? 'review' : 'reviews'}
+            <strong className="text-2">{filtered.length}</strong> written {filtered.length === 1 ? 'review' : 'reviews'}
             {product !== 'all' && (
               <>
                 {' '}
@@ -346,7 +426,7 @@ export function ReviewsPage() {
               </button>
             ) : (
               <p className="small muted">
-                That's every review{filteredActive ? ' for this filter' : ''}.{' '}
+                That's every written review{filteredActive ? ' for this filter' : ''}.{' '}
                 <button type="button" className="rev-inline-link" onClick={() => setWriting(true)}>
                   Add yours
                 </button>
@@ -395,7 +475,7 @@ function ReviewCard({ review: r, delay }: { review: Review; delay: number }) {
         <Avatar name={r.author} size={34} />
         <span className="rev-card-who">
           <strong>{r.author}</strong>
-          <span className="tiny muted">{r.plan} plan</span>
+          {r.plan && <span className="tiny muted">{r.plan} plan</span>}
         </span>
         {r.verified ? (
           <span className="rev-card-verified">
@@ -536,7 +616,7 @@ function ReviewModal({ onClose, onSubmitted }: { onClose: () => void; onSubmitte
         id: `mine-${Date.now()}`,
         author: user?.username ?? name.trim(),
         productSlug,
-        plan: plan || product?.plans[0]?.label || '1 Day',
+        plan,
         rating: rating as Review['rating'],
         text: text.trim(),
         date: new Date(NOW).toISOString().slice(0, 10),

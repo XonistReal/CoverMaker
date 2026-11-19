@@ -15,6 +15,12 @@ import './product.css';
 export function ProductPage({ slug }: { slug: string }) {
   const product = getProduct(slug);
   const game = product ? getGame(product.gameSlug) : undefined;
+  const missing = !product || !game;
+
+  // App's generic title would otherwise stay on this screen; ProductView sets the product title itself.
+  useEffect(() => {
+    if (missing) document.title = `Product not found · ${BRAND.name}`;
+  }, [missing]);
 
   if (!product || !game) {
     return (
@@ -22,6 +28,7 @@ export function ProductPage({ slug }: { slug: string }) {
         <Breadcrumbs items={[{ label: 'Home', to: '/' }, { label: 'Store', to: '/store' }, { label: 'Not found' }]} />
         <div className="pdp-missing card">
           <EmptyState
+            as="h1"
             icon="search"
             title="We couldn't find that product"
             body="It may have been renamed or retired. Everything that's live right now is in the store."
@@ -55,6 +62,11 @@ export function ProductPage({ slug }: { slug: string }) {
   return <ProductView product={product} game={game} />;
 }
 
+/** Cart caps every plan at 10 keys (see useCart().add). */
+const MAX_PER_PLAN = 10;
+const scrollBehavior = (): ScrollBehavior =>
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+
 function usePurchase(product: Product): Purchase {
   const cart = useCart();
   const { toast, openCart } = useUI();
@@ -62,21 +74,38 @@ function usePurchase(product: Product): Purchase {
   const [qty, setQtyRaw] = useState(1);
   const plan = product.plans.find((p) => p.id === planId) ?? product.plans[0];
   const canBuy = product.status !== 'detected';
+  const limitToast = (added: number) =>
+    toast(
+      added > 0
+        ? {
+            title: `Added ${added} (${MAX_PER_PLAN}-key limit per plan)`,
+            body: `Your cart now holds the maximum ${MAX_PER_PLAN} × ${product.name} · ${plan.label}.`,
+            tone: 'warn',
+          }
+        : {
+            title: 'Limit reached',
+            body: `Your cart already holds ${MAX_PER_PLAN} × ${product.name} · ${plan.label}, the most per plan.`,
+            tone: 'warn',
+          },
+    );
   return {
     plan,
     setPlanId,
     qty,
-    setQty: (n) => setQtyRaw(Math.max(1, Math.min(10, n))),
+    setQty: (n) => setQtyRaw(Math.max(1, Math.min(MAX_PER_PLAN, n))),
     canBuy,
     add: () => {
       if (!canBuy) return;
-      cart.add(product.slug, plan.id, qty);
-      toast({ title: 'Added to cart', body: `${product.name} · ${plan.label}${qty > 1 ? ` × ${qty}` : ''}`, tone: 'ok' });
-      openCart();
+      const added = cart.add(product.slug, plan.id, qty);
+      // The cart drawer is the confirmation; a toast on top would cover its Checkout button on phones.
+      // Only when the per-plan cap trimmed the order do we skip the drawer and explain instead.
+      if (added === qty) openCart();
+      else limitToast(added);
     },
     buy: () => {
       if (!canBuy) return;
-      cart.add(product.slug, plan.id, qty);
+      const added = cart.add(product.slug, plan.id, qty);
+      if (added < qty) limitToast(added);
       navigate('/checkout');
     },
   };
@@ -119,7 +148,7 @@ function ProductView({ product, game }: { product: Product; game: Game }) {
 
   const openTab = (t: TabId) => {
     setTab(t);
-    tabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    tabsRef.current?.scrollIntoView({ behavior: scrollBehavior(), block: 'start' });
   };
 
   return (

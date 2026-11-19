@@ -16,7 +16,7 @@ export function Footer() {
             <div className="row gap-12" style={{ marginTop: 20 }}>
               <Stars value={BRAND.rating} />
               <span className="small text-2">
-                <strong style={{ color: 'var(--text)' }}>{BRAND.rating}</strong> · {BRAND.reviewCount.toLocaleString('en-US')} reviews
+                <strong style={{ color: 'var(--text)' }}>{BRAND.rating}</strong> · {BRAND.reviewCount.toLocaleString('en-US')} ratings
               </span>
             </div>
             <div className="row gap-8" style={{ marginTop: 14 }}>

@@ -392,13 +392,16 @@ export function MobileBuyBar({
 }) {
   const [show, setShow] = useState(false);
   useEffect(() => {
-    // Show once the real buttons have scrolled up past the top of the viewport.
+    // Show once the real buttons have scrolled up past the top of the viewport, and hide again once the
+    // footer comes into view so the bar never sits on top of it (that also drops --sticky-bottom).
     // A scroll listener (not IntersectionObserver) so big jumps, e.g. back to top, are caught too.
     let raf = 0;
     const check = () => {
       raf = 0;
       const el = watchRef.current;
-      if (el) setShow(el.getBoundingClientRect().bottom < 0);
+      if (!el) return;
+      const footer = document.querySelector('.footer');
+      setShow(el.getBoundingClientRect().bottom < 0 && (!footer || footer.getBoundingClientRect().top > window.innerHeight));
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(check);
@@ -429,7 +432,7 @@ export function MobileBuyBar({
     barRef.current?.toggleAttribute('inert', !show);
   }, [show]);
 
-  const { plan, canBuy, add } = purchase;
+  const { plan, qty, canBuy, add } = purchase;
   return (
     <div ref={barRef} className={`pdp-bar${show ? ' is-shown' : ''}`} aria-hidden={!show}>
       <div className="pdp-bar-inner">
@@ -441,7 +444,12 @@ export function MobileBuyBar({
           <span className="pdp-bar-plan">
             {canBuy ? (
               <>
-                {plan.label} · <b className="tabular">{formatPrice(plan.price)}</b>
+                <span className="pdp-bar-plan-label">
+                  {plan.label}
+                  {qty > 1 ? ` × ${qty}` : ''}
+                </span>
+                <span className="pdp-bar-sep">·</span>
+                <b className="tabular">{formatPrice(plan.price * qty)}</b>
               </>
             ) : (
               <span className="pdp-bar-paused">Sales paused</span>
@@ -456,7 +464,12 @@ export function MobileBuyBar({
           <button
             type="button"
             className="btn btn-white"
-            onClick={() => document.getElementById('pdp-notify')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+            onClick={() =>
+              document.getElementById('pdp-notify')?.scrollIntoView({
+                behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+                block: 'center',
+              })
+            }
           >
             Notify me
           </button>

@@ -15,7 +15,7 @@ export function FaqSection() {
           <div className="titles stack gap-12">
             <span className="eyebrow">FAQ</span>
             <h2 id="home-faq-title" className="h2">
-              Frequently asked <span className="muted">questions</span>
+              Frequently asked <span className="grad-text">questions</span>
             </h2>
             <p className="lead">Everything players ask before their first key. Short, straight answers.</p>
           </div>
@@ -48,8 +48,8 @@ export function FaqSection() {
 
         <Reveal delay={80} className="home-faq-main">
           <Accordion items={ITEMS} numbered />
-          <Link to="/support" className="home-link-arrow home-faq-more">
-            Visit the help center <Icon name="arrow-right" size={15} />
+          <Link to="/support?faq=1" className="home-link-arrow home-faq-more">
+            See all FAQs in the help center <Icon name="arrow-right" size={15} />
           </Link>
         </Reveal>
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { GameArt } from '../../components/GameArt';
 import { Icon } from '../../components/Icon';
@@ -116,8 +116,11 @@ function VideoModal({ product, game, onClose }: { product: Product; game: Game; 
   const descId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const barBtnRef = useRef<HTMLButtonElement>(null);
   const [playing, setPlaying] = useState(false);
   const [t, setT] = useState(0);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   // Focus, scroll lock and restore.
   useEffect(() => {
@@ -127,6 +130,42 @@ function VideoModal({ product, game, onClose }: { product: Product; game: Game; 
     return () => {
       document.documentElement.style.overflow = prev;
     };
+  }, []);
+
+  // Esc closes and Tab stays inside the dialog, wherever focus currently is (even <body>).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      if (e.key === 'Escape') {
+        // Topmost overlay: stop here so the chat panel underneath stays open.
+        e.preventDefault();
+        e.stopPropagation();
+        onCloseRef.current();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const els = Array.from(
+        dialog.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input, [tabindex]:not([tabindex="-1"])'),
+      );
+      if (!els.length) return;
+      const first = els[0];
+      const last = els[els.length - 1];
+      const active = document.activeElement;
+      if (!dialog.contains(active)) {
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+      } else if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    // Capture phase on window runs before other overlays' document listeners.
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
   }, []);
 
   // Fake playback clock.
@@ -149,33 +188,10 @@ function VideoModal({ product, game, onClose }: { product: Product; game: Game; 
     setPlaying((p) => !p);
   };
 
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'Escape') {
-      e.stopPropagation();
-      onClose();
-      return;
-    }
-    if (e.key === 'Tab' && dialogRef.current) {
-      const els = Array.from(
-        dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input, [tabindex]:not([tabindex="-1"])'),
-      );
-      if (!els.length) return;
-      const first = els[0];
-      const last = els[els.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    }
-  };
-
   const pct = (t / CLIP_SECONDS) * 100;
 
   return createPortal(
-    <div className="pdp-modal" onKeyDown={onKeyDown}>
+    <div className="pdp-modal">
       <div className="pdp-modal-backdrop" onClick={onClose} aria-hidden="true" />
       <div
         ref={dialogRef}
@@ -211,7 +227,11 @@ function VideoModal({ product, game, onClose }: { product: Product; game: Game; 
               <button
                 type="button"
                 className="pdp-player-big"
-                onClick={toggle}
+                onClick={() => {
+                  // This button unmounts once playback starts: hand focus to the bar's play/pause first.
+                  barBtnRef.current?.focus({ preventScroll: true });
+                  toggle();
+                }}
                 aria-label={t > 0 ? 'Resume preview' : 'Play preview'}
               >
                 <Icon name="play" size={30} />
@@ -220,6 +240,7 @@ function VideoModal({ product, game, onClose }: { product: Product; game: Game; 
           </div>
           <div className="pdp-player-bar">
             <button
+              ref={barBtnRef}
               type="button"
               className="pdp-player-btn"
               onClick={toggle}
@@ -235,7 +256,7 @@ function VideoModal({ product, game, onClose }: { product: Product; game: Game; 
               )}
             </button>
             <span className="pdp-player-time mono tabular">
-              {fmt(t)} <span className="dim">/ {fmt(CLIP_SECONDS)}</span>
+              {fmt(t)} <span className="muted">/ {fmt(CLIP_SECONDS)}</span>
             </span>
             <span
               className="pdp-player-track"

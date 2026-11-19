@@ -7,7 +7,7 @@ const players = parseFloat(BRAND.customers) * (/k/i.test(BRAND.customers) ? 1000
 
 const CELLS: { icon: string; to: number; label: string; format?: (n: number) => string; unit?: string }[] = [
   { icon: 'gamepad', to: STATS.games, label: 'Games supported' },
-  { icon: 'box', to: STATS.products, label: 'Products in stock' },
+  { icon: 'box', to: STATS.available, label: 'Tools available now' },
   { icon: 'users', to: players, label: 'Players served', format: (n) => `${Math.round(n / 1000)}K+` },
   { icon: 'headset', to: 4, label: 'Avg. support reply', format: (n) => `<${Math.max(1, Math.round(n))}`, unit: 'min' },
 ];

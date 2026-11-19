@@ -660,7 +660,21 @@
   flex-direction: column;
   gap: 12px;
 }
-.home-games-row .marquee-track { gap: 12px; }
+/* Rows are full-bleed and clip their overflow: the block padding (cancelled by the negative margin) and the
+   scroll padding leave room for a chip's focus ring. A row with keyboard focus stops looping, so the focused
+   chip stays still and the browser scrolls it into view (hover pauses via the shared .marquee rule). */
+.home-games-row {
+  padding-block: 6px;
+  margin-block: -6px;
+  scroll-padding-inline: 24px;
+}
+.home-games-row:focus-within {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+.home-games-row:focus-within .marquee-track { animation: none; }
+/* 6px each side + 12px gap: the -50% loop lands exactly on the first duplicate. */
+.home-games-row .marquee-track { gap: 12px; padding-inline: 6px; }
 .home-game-chip {
   display: inline-flex;
   align-items: center;
@@ -718,6 +732,40 @@
   .home-games-head .home-link-arrow { margin-left: auto; font-size: 13px; white-space: nowrap; }
   .home-game-chip { height: 56px; }
   .home-game-chip-tile { width: 38px; }
+}
+/* Reduced motion: no loop and no duplicates. Every game is listed once, as a centred wrap on wider screens and
+   a swipeable two-row strip on phones. */
+@media (prefers-reduced-motion: reduce) {
+  .home-games-row {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .home-games-row.is-decorative,
+  .home-games-row .home-game-chip[aria-hidden='true'] { display: none; }
+  .home-games-row .marquee-track {
+    animation: none;
+    width: auto;
+    max-width: calc(var(--container) + var(--gutter) * 2);
+    margin-inline: auto;
+    padding-inline: max(var(--gutter), env(safe-area-inset-left)) max(var(--gutter), env(safe-area-inset-right));
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+@media (prefers-reduced-motion: reduce) and (max-width: 640px) {
+  .home-games-row {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+  .home-games-row::-webkit-scrollbar { display: none; }
+  .home-games-row .marquee-track {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(2, auto);
+    width: max-content;
+    max-width: none;
+  }
 }
 
 /* =====================================================================
@@ -926,7 +974,7 @@
 .home-why-status-label.tone-bad { color: var(--bad); }
 .home-why-status-time {
   font-size: 11px;
-  color: var(--faint);
+  color: var(--muted);
   text-align: right;
 }
 
@@ -1018,7 +1066,7 @@
   border-radius: 10px;
   border: 1px dashed var(--line-2);
   font-size: 13px;
-  color: var(--faint);
+  color: var(--muted);
   transition: color 0.3s, border-color 0.3s, background 0.3s;
 }
 .home-why-key.is-shown {
@@ -1083,7 +1131,7 @@
   justify-content: space-between;
   margin-top: 8px;
   font-size: 10.5px;
-  color: var(--faint);
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -1322,7 +1370,7 @@
   justify-content: space-between;
   margin-top: 10px;
   font-size: 10.5px;
-  color: var(--faint);
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }

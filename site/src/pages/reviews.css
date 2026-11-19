@@ -213,7 +213,7 @@
 }
 .rev-dist-n {
   font-size: 11px;
-  color: var(--faint);
+  color: var(--muted);
   text-align: right;
 }
 
@@ -620,10 +620,10 @@
 .rev-count {
   flex: none;
   font-size: 11px;
-  color: var(--faint);
+  color: var(--muted);
   margin-top: 2px;
 }
-.rev-count.is-ok { color: var(--muted); }
+.rev-count.is-ok { color: var(--text-2); }
 .rev-posting {
   display: flex;
   align-items: center;

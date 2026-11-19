@@ -9,7 +9,7 @@ import { Avatar } from './ui';
 export function Navbar() {
   const route = useRoute();
   const { count } = useCart();
-  const { openCart, openAuth } = useUI();
+  const { openCart, openAuth, cartOpen, chatOpen, authMode } = useUI();
   const { user } = useAuth();
   const online = useOnlineCount();
   const [scrolled, setScrolled] = useState(false);
@@ -25,8 +25,12 @@ export function Navbar() {
   const burgerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Close the mobile sheet on navigation.
+  // Close the mobile sheet on navigation, and whenever another overlay opens
+  // on top of it (cart, chat, auth), so only one modal owns focus at a time.
   useEffect(() => setMenuOpen(false), [route.path]);
+  useEffect(() => {
+    if (cartOpen || chatOpen || authMode) setMenuOpen(false);
+  }, [cartOpen, chatOpen, authMode]);
 
   // While the sheet is open it behaves like a modal: page scroll is locked,
   // focus moves in and is trapped (burger + sheet), Esc closes it, and it

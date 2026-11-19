@@ -305,7 +305,12 @@ export function HeroSearch() {
               <kbd>↵</kbd> open
               <kbd>esc</kbd> close
             </span>
-            <button type="button" className="home-search-all" onMouseDown={(e) => e.preventDefault()} onClick={submit}>
+            <button
+              type="button"
+              className="home-search-all"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => (hasQuery ? submit() : go('/store?view=products'))}
+            >
               {hasQuery ? (
                 <>
                   All results for “<span className="home-search-all-q">{q.trim()}</span>”

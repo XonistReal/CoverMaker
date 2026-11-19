@@ -1,11 +1,11 @@
-import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { BRAND } from '../config';
 import { PRODUCTS, STATUS_META, formatDate, formatPrice, getGame, getProduct } from '../data/catalog';
 import type { Status } from '../data/types';
 import { GameArt } from '../components/GameArt';
 import { ProductCard } from '../components/ProductCard';
 import { Icon } from '../components/Icon';
-import { Avatar, Breadcrumbs, EmptyState, StatusBadge } from '../components/ui';
+import { Avatar, Breadcrumbs, EmptyState, SectionHeader, StatusBadge } from '../components/ui';
 import { Link, navigate } from '../router';
 import { useAuth, useCart, useUI, type ResolvedLine } from '../state/store';
 import {
@@ -103,6 +103,8 @@ const PROCESS_MSGS = ['Securing your session', 'Confirming with our payment part
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+const CRUMBS = [{ label: 'Home', to: '/' }, { label: 'Store', to: '/store' }, { label: 'Checkout' }];
+
 const POPULAR = PRODUCTS.filter((p) => p.popular && p.status === 'undetected')
   .sort((a, b) => b.sold - a.sold)
   .slice(0, 4);
@@ -152,6 +154,9 @@ function useProcessSteps(active: boolean) {
   return i;
 }
 
+const scrollBehavior = (): ScrollBehavior =>
+  window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+
 function lineSavings(lines: ResolvedLine[]) {
   return lines.reduce((s, l) => s + ((l.plan.compareAt ?? l.plan.price) - l.plan.price) * l.qty, 0);
 }
@@ -186,6 +191,8 @@ export function CheckoutPage() {
   const [summaryOpen, setSummaryOpen] = useState(false);
 
   const stepRefs = useRef<(HTMLElement | null)[]>([]);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const coinRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const timer = useRef<number>();
   const prevStep = useRef<Step>(0);
   const msgIndex = useProcessSteps(phase === 'processing');
@@ -204,7 +211,7 @@ export function CheckoutPage() {
     const el = stepRefs.current[step];
     if (!el) return;
     const top = el.getBoundingClientRect().top;
-    if (top < 80 || top > window.innerHeight * 0.55) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (top < 80 || top > window.innerHeight * 0.55) el.scrollIntoView({ behavior: scrollBehavior(), block: 'start' });
     el.querySelector<HTMLElement>('.co-step-title')?.focus({ preventScroll: true });
   }, [step]);
 
@@ -223,10 +230,11 @@ export function CheckoutPage() {
     return (
       <div className="page co">
         <div className="container">
-          <Breadcrumbs items={[{ label: 'Store', to: '/store' }, { label: 'Checkout' }]} />
+          <Breadcrumbs items={CRUMBS} />
           <div className="co-empty card">
             <div className="glow-blob co-empty-glow" aria-hidden="true" />
             <EmptyState
+              as="h1"
               icon="cart"
               title="Your cart is empty"
               body="Pick a product and a plan, then come back here. Checkout takes under a minute and your key arrives instantly."
@@ -249,15 +257,20 @@ export function CheckoutPage() {
             </ul>
           </div>
 
-          <section className="co-popular" aria-labelledby="co-popular-title">
-            <div className="co-popular-head">
-              <h2 className="co-popular-title" id="co-popular-title">
-                Popular right now
-              </h2>
-              <Link to="/store" className="co-link small">
-                View all products
-              </Link>
-            </div>
+          <section className="co-popular">
+            <SectionHeader
+              eyebrow="Popular right now"
+              title={
+                <>
+                  Start with <span className="accent">a best seller</span>
+                </>
+              }
+              action={
+                <Link to="/store" className="btn btn-ghost btn-sm">
+                  View all products <Icon name="arrow-right" />
+                </Link>
+              }
+            />
             <div className="co-popular-grid">
               {POPULAR.map((p) => (
                 <ProductCard key={p.slug} product={p} />
@@ -278,11 +291,33 @@ export function CheckoutPage() {
   const submitAccount = (e: FormEvent) => {
     e.preventDefault();
     const v = email.trim();
-    if (!v) return setEmailError('Enter the email your keys should go to.');
-    if (!EMAIL_RE.test(v)) return setEmailError('That email doesn’t look right. Check for typos.');
+    const err = !v ? 'Enter the email your keys should go to.' : !EMAIL_RE.test(v) ? 'That email doesn’t look right. Check for typos.' : '';
+    if (err) {
+      setEmailError(err);
+      emailRef.current?.focus();
+      return;
+    }
     setEmailError('');
     setEmail(v);
     go(1);
+  };
+
+  // Radio-group keys for the coin picker: one Tab stop, arrows move the selection.
+  const onCoinKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    const i = COINS.findIndex((c) => c.id === coin);
+    const map: Record<string, number> = {
+      ArrowRight: i + 1,
+      ArrowDown: i + 1,
+      ArrowLeft: i - 1,
+      ArrowUp: i - 1,
+      Home: 0,
+      End: COINS.length - 1,
+    };
+    if (!(e.key in map)) return;
+    e.preventDefault();
+    const n = (map[e.key] + COINS.length) % COINS.length;
+    setCoin(COINS[n].id);
+    coinRefs.current[n]?.focus();
   };
 
   const submitPayment = (e: FormEvent) => {
@@ -344,7 +379,7 @@ export function CheckoutPage() {
       <div className="container co-container">
         <header className="co-head">
           <div className="co-head-titles">
-            <Breadcrumbs items={[{ label: 'Store', to: '/store' }, { label: 'Checkout' }]} />
+            <Breadcrumbs items={CRUMBS} />
             <h1 className="co-title">
               Secure <span className="accent">checkout</span>
             </h1>
@@ -445,6 +480,7 @@ export function CheckoutPage() {
                       <div className="input-wrap">
                         <Icon name="mail" />
                         <input
+                          ref={emailRef}
                           id={`${uid}-email`}
                           className={`input${emailError ? ' co-invalid' : ''}`}
                           type="email"
@@ -460,7 +496,12 @@ export function CheckoutPage() {
                           aria-describedby={`${uid}-email-msg`}
                         />
                       </div>
-                      <span id={`${uid}-email-msg`} className={emailError ? 'co-error' : 'co-help'}>
+                      <span
+                        key={emailError ? 'error' : 'help'}
+                        id={`${uid}-email-msg`}
+                        className={emailError ? 'co-error' : 'co-help'}
+                        role={emailError ? 'alert' : undefined}
+                      >
                         {emailError || 'Your license keys and receipt are sent here. No spam, ever.'}
                       </span>
                     </div>
@@ -569,13 +610,17 @@ export function CheckoutPage() {
                         </span>
                         <span className="tiny muted">{coinMeta.note}</span>
                       </div>
-                      <div className="co-coin-row" role="radiogroup" aria-labelledby={`${uid}-coin`}>
-                        {COINS.map((c) => (
+                      <div className="co-coin-row" role="radiogroup" aria-labelledby={`${uid}-coin`} onKeyDown={onCoinKey}>
+                        {COINS.map((c, i) => (
                           <button
                             key={c.id}
+                            ref={(el) => {
+                              coinRefs.current[i] = el;
+                            }}
                             type="button"
                             role="radio"
                             aria-checked={coin === c.id}
+                            tabIndex={coin === c.id ? 0 : -1}
                             className="co-coin"
                             onClick={() => setCoin(c.id)}
                           >
@@ -779,8 +824,19 @@ export function CheckoutPage() {
                         disabled={busy}
                       />
                       <span>
-                        I agree to the <a href="#/legal/terms">Terms of Service</a> and{' '}
-                        <a href="#/legal/refunds">Refund Policy</a>, and understand digital keys are delivered instantly.
+                        I agree to the{' '}
+                        <a href="#/legal/terms" target="_blank" rel="noopener noreferrer">
+                          Terms of Service
+                          <Icon name="external" size={12} className="co-ext" />
+                          <span className="sr-only"> (opens in new tab)</span>
+                        </a>{' '}
+                        and{' '}
+                        <a href="#/legal/refunds" target="_blank" rel="noopener noreferrer">
+                          Refund Policy
+                          <Icon name="external" size={12} className="co-ext" />
+                          <span className="sr-only"> (opens in new tab)</span>
+                        </a>
+                        , and understand digital keys are delivered instantly.
                       </span>
                     </label>
                     {agreeError && (
